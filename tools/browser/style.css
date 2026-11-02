@@ -99,6 +99,9 @@ a, .link { color: var(--accent); cursor: pointer; text-decoration: none; }
 #gitbar button { margin-left: 6px; }
 .icon { width: 1.15em; height: 1.15em; vertical-align: -0.22em; }
 button.sync .icon { margin-right: 2px; }
+button.sync.busy .arrows { animation: spin 1.2s linear infinite; transform-box: view-box; transform-origin: 12px 13px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { button.sync.busy .arrows { animation-duration: 4s; } }
 .ok { color: #2e8b57; font-weight: bold; }
 @media (prefers-color-scheme: dark) { .ok { color: #5fcf8f; } }
 .badge { display: inline-block; min-width: 1.4em; padding: 0 5px; border-radius: 99px; background: var(--accent); color: #fff;
