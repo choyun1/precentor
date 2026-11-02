@@ -659,6 +659,14 @@ class Setup(unittest.TestCase):
 
 
 class Server(unittest.TestCase):
+    def test_the_emailed_pictures_are_cut_to_the_ink(self):
+        import build
+        from PIL import Image
+        im = Image.new('RGB', (400, 100), 'white')
+        im.paste((0, 0, 0), (150, 20, 380, 80))                          # text set in from the left, as LilyPond leaves it
+        self.assertEqual(build.trim(im).size, (230, 60))
+        self.assertEqual(build.trim(Image.new('RGB', (10, 10), 'white')).size, (10, 10))
+
     def test_a_sync_that_brings_new_tools_restarts_the_launcher(self):
         import browser, serve
         from unittest import mock

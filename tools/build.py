@@ -697,6 +697,13 @@ def build_pdf(exe, sunday, psalms, chants, tags, outdir, base):
     return ly, sorted(reprints)
 
 
+def trim(im):
+    """The picture cut to what's printed on it (LilyPond's crop keeps blank margins, such as the text's indent)."""
+    from PIL import ImageChops
+    box = ImageChops.invert(im.convert('L')).point(lambda p: 255 if p > 24 else 0).getbbox()
+    return im.crop(box) if box else im
+
+
 def build_images(exe, sunday, psalms, chants, tags, outdir, dpi=400):
     from PIL import Image
     adir = os.path.join(outdir, 'admin')
@@ -743,6 +750,7 @@ def build_images(exe, sunday, psalms, chants, tags, outdir, dpi=400):
                     im = bg
                 else:
                     im = im.convert('RGB')
+                im = trim(im)                                     # -dcrop keeps the page's indent: cut to the ink
                 pad = dpi // 20                                   # a little white border
                 out = Image.new('RGB', (im.width + 2 * pad, im.height + 2 * pad), 'white')
                 out.paste(im, (pad, pad))
