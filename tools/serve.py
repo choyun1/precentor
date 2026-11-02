@@ -430,7 +430,8 @@ def restart():
 
 def get_ping(q):
     if paths.PARISH:
-        return {'ok': True, 'setup': False}
+        import library                              # the built page may come from another computer
+        return {'ok': True, 'setup': False, 'library': library.folder_status()}
     import setup                                    # no parish folder yet: what the first-run form offers
     return {'ok': True, 'setup': True, 'feasts': [{'key': k, 'name': n, 'date': md} for md, k, n in setup.FEASTS]}
 

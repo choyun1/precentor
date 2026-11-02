@@ -579,6 +579,9 @@ class Library(unittest.TestCase):
             self.assertEqual(self.L.page_data()['unfound'], ['/no/such/computer'])   # the page says which folder it looked for
         with mock.patch.object(self.L, 'settings', return_value=other), mock.patch.object(self.L, 'read', return_value=[]):
             self.assertEqual(self.L.page_data()['unfound'], [])
+        import serve                                                    # a page built elsewhere hears from this computer
+        with mock.patch.object(self.L, 'settings', return_value=other), mock.patch.object(serve.paths, 'PARISH', self.d):
+            self.assertEqual(serve.get_ping({})['library'], {'folders': True, 'unfound': []})
 
     def test_adding_a_pdf(self):
         os.makedirs(os.path.join(self.d, 'Easter'))
