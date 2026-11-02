@@ -668,7 +668,8 @@ def page_texts(pdf):
         out = subprocess.run(['pdftotext', '-layout', pdf, '-'], capture_output=True, text=True).stdout
         return out.split('\f')
     try:
-        import pypdf
+        import logging, pypdf
+        logging.getLogger('pypdf').setLevel(logging.ERROR)     # (its notes on LilyPond's fonts are no concern of ours)
         return [p.extract_text() or '' for p in pypdf.PdfReader(pdf).pages]
     except ImportError:
         print('  note: install pypdf (pip install pypdf) to have chants reprinted at the top of a page')
