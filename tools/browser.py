@@ -501,10 +501,10 @@ def main():
             'unconfirmed': unconfirmed(), 'gloria': gloria_body(), 'service': service_data(),
             'parish': {'name': lectionary.PARISH.get('name', ''), 'track': lectionary.PARISH.get('track', '2'),
                        'optional': build.optional_default()},
-            'demo': bool(os.environ.get('PSALTER_DEMO')),      # the copy on GitHub Pages (.github/workflows/pages.yml)
+            'demo': bool(os.environ.get('PRECENTOR_DEMO')),      # the copy on GitHub Pages (.github/workflows/pages.yml)
             }
     with open(os.path.join(SITE, 'data.js'), 'w', encoding='utf-8') as fh:
-        fh.write('window.PSALTER = ' + json.dumps(data, ensure_ascii=False, separators=(',', ':')) + ';\n')
+        fh.write('window.PRECENTOR = ' + json.dumps(data, ensure_ascii=False, separators=(',', ':')) + ';\n')
     open(os.path.join(SITE, 'index.html'), 'w', encoding='utf-8').write(page_html())
     tagged = sum(1 for c in chants if c['mood'])
     print(f'{len(chants)} chants ({tagged} with moods), {len(data["texts"])} texts, {len(data["history"])} history rows')

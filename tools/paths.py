@@ -1,6 +1,6 @@
 """Where things live.
 
-The psalter (this folder) is the general part: tools, style, texts, public-domain chants, lectionary,
+Precentor (this folder) is the general part: tools, style, texts, public-domain chants, lectionary,
 tones. Everything belonging to one parish lives in its own folder, `parish/` inside this one
 (its own private git repository):
 
@@ -12,7 +12,7 @@ tones. Everything belonging to one parish lives in its own folder, `parish/` ins
     parish/site/               the chant browser, built for this parish
     parish/legacy/             anything from before (old files, history.csv)
 
-Without a parish folder the tools still work, using the psalter folder for those things.
+Without a parish folder the tools still work, using the precentor folder for those things.
 """
 import csv, functools, os, re
 

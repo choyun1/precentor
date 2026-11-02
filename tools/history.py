@@ -20,7 +20,7 @@ MARK = 'Recorded by the chant browser.'   # in the body of each change History l
 GENERATED_DIRS = ('site/', 'output/')      # rebuilt from the rest, so a clash in them doesn't matter
 STALE = {}                                 # 'site': True when a sync took GitHub's copy of the generated pages
 LOCK = threading.RLock()                   # one git command at a time (rebuilds run in the background)
-WHO = ['-c', 'user.name=Psalter', '-c', 'user.email=psalter@localhost']   # if git doesn't know who you are
+WHO = ['-c', 'user.name=Precentor', '-c', 'user.email=precentor@localhost']   # if git doesn't know who you are
 
 
 def git(d, *args):
@@ -195,6 +195,8 @@ def sync(message):
 def _sync(message, log):
     for d, name in repos():
         step(f'{name}: saving what changed here')
+        if sys.platform.startswith('win'):          # Windows has no "executable" flag: never record losing it
+            git(d, 'config', 'core.fileMode', 'false')
         code, st = git(d, 'status', '--porcelain')
         if st.strip():
             git(d, 'add', '-A')

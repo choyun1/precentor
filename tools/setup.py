@@ -106,7 +106,7 @@ def main():
     verses = ask('Verses the lectionary puts in brackets: sing, or leave out?', 'sing', ['sing', 'leave out'])
     for line in make_parish(name, track, FEASTS[int(n) - 1][1] if n else '', verses):
         print(line)
-    print('Open the launcher (psalter.sh, or Psalter.bat on Windows) to start planning.')
+    print('Open the launcher (precentor.sh, or Precentor.bat on Windows) to start planning.')
 
 
 if __name__ == '__main__':

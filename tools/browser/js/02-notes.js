@@ -1,5 +1,5 @@
 // ---------- local edits (kept in this browser until exported) ----------
-const KEY = "psalter-edits-v1";
+const KEY = "precentor-edits-v1";
 let edits = {};
 try { edits = JSON.parse(localStorage.getItem(KEY) || "{}"); } catch (e) { edits = {}; }
 function saveEdits() { try { localStorage.setItem(KEY, JSON.stringify(edits)); } catch (e) {} renderSavebar(); }
@@ -40,7 +40,7 @@ function catalogText() {
 // remember the catalog file between visits (Chrome and Edge only)
 function idb(mode, fn) {
   return new Promise((res, rej) => {
-    const r = indexedDB.open("psalter", 1);
+    const r = indexedDB.open("precentor", 1);
     r.onupgradeneeded = () => r.result.createObjectStore("kv");
     r.onerror = () => rej(r.error);
     r.onsuccess = () => { const tx = r.result.transaction("kv", mode); const q = fn(tx.objectStore("kv")); tx.oncomplete = () => res(q && q.result); tx.onerror = () => rej(tx.error); };
@@ -70,7 +70,7 @@ async function saveCatalog() {
     try { h = await idb("readonly", st => st.get("notes")); } catch (e) {}
     if (h && (await h.requestPermission({mode: "readwrite"})) !== "granted") h = null;
     if (!h) {
-      window.alert("Choose parish/chant_notes.csv in your psalter folder. The browser will remember it next time.");
+      window.alert("Choose parish/chant_notes.csv in your precentor folder. The browser will remember it next time.");
       h = await window.showSaveFilePicker({suggestedName: "chant_notes.csv", types: [{description: "CSV", accept: {"text/csv": [".csv"]}}]});
       try { await idb("readwrite", st => st.put(h, "notes")); } catch (e) {}
     }

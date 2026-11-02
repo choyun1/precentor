@@ -15,7 +15,7 @@ import csv, io, http.server, json, os, re, subprocess, sys, threading, urllib.pa
 
 TOOLS = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(TOOLS)
-PORT = int(os.environ.get('PSALTER_PORT', '8765'))
+PORT = int(os.environ.get('PRECENTOR_PORT') or os.environ.get('PSALTER_PORT') or '8765')
 PY = sys.executable
 sys.path.insert(0, TOOLS)
 import paths, history   # noqa: E402

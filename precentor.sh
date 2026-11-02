@@ -1,5 +1,5 @@
 #!/bin/sh
-# Open the chant browser and service planner (Linux/macOS). Make it double-clickable with: chmod +x psalter.sh
+# Open the chant browser and service planner (Linux/macOS). Make it double-clickable with: chmod +x precentor.sh
 # The Python packages go in a folder of their own here (.venv), since newer systems won't let pip
 # install into the system's Python.
 cd "$(dirname "$0")" || exit 1

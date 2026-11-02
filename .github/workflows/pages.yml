@@ -25,7 +25,7 @@ jobs:
       - name: Build the chant browser for St. Example's
         run: |
           cp -r parish.example parish
-          PSALTER_DEMO=1 python tools/browser.py
+          PRECENTOR_DEMO=1 python tools/browser.py
       - name: The page, its fonts, and a front door
         run: |
           mkdir -p _site/parish _site/style
