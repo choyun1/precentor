@@ -1,0 +1,4 @@
+# Shell scripts keep Unix line endings even when checked out on Windows (a folder synced from
+# Windows to Linux, e.g. by Syncthing, otherwise brings CRLFs that bash cannot read).
+*.sh  text eol=lf
+*.bat text eol=crlf
