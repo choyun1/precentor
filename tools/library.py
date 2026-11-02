@@ -16,11 +16,13 @@ parish/library/catalog.csv (UTF-8), one row per piece, and every column but Titl
     Location, Copies, Publisher no.  where the paper copies are, how many, and the number to order more by
     Voicing, Words, Notes          e.g. SATB, organ; Words names its file in parish/anthems/
 
-How someone keeps their scores goes in parish/library/library.txt, and settings for one computer (where the
-score folder is on it) in ~/.psalter/library.txt, which wins. Every line is optional:
+How someone keeps their scores goes in parish/library/library.txt, with the parish's other files. Every line
+is optional:
 
     catalog:         D:/Music/catalog.csv                       # keep the catalog somewhere else
-    score folders:   D:/Music/Sacred; D:/Music/Octavo scans     # where the PDFs are, on this computer
+    score folders:   ~/Sync/Music/Sacred; D:/Music/Sacred       # where the PDFs are: ~ is your home folder on
+                                                                # each computer, and a folder a computer
+                                                                # doesn't have is passed over there
     names:           {composer}-{title}                         # how a PDF's name reads (_ for spaces)
     file new pdfs:   {season}/{composer}-{title}.pdf            # where a PDF added in the planner goes
     folder seasons:  Advent = advent, Christmas = christmas, General = any   # a folder suggests a season
@@ -37,7 +39,6 @@ COLUMNS = ['Composer', 'Title', 'Catalog no.', 'Years', 'Format', 'Season', 'Occ
 FORMATS = ('PDF', 'Octavo', 'Book')
 SEASONS = ('advent', 'christmas', 'epiphany', 'lent', 'holy_week', 'easter', 'pentecost')
 DIR = os.path.join(paths.HOME, 'library')
-LOCAL = os.path.join(os.path.expanduser('~'), '.psalter', 'library.txt')
 
 
 # ------------------------------------------------------------------ settings
@@ -53,7 +54,7 @@ def _settings_file(path, out):
 
 
 def settings():
-    return _settings_file(LOCAL, _settings_file(os.path.join(DIR, 'library.txt'), {}))
+    return _settings_file(os.path.join(DIR, 'library.txt'), {})
 
 
 def _list(v, sep=r'[;,]'):
@@ -67,7 +68,8 @@ def catalog_file(s=None):
 
 def score_folders(s=None):
     s = settings() if s is None else s
-    return [os.path.expanduser(f) for f in _list(s.get('score folders'), r';')]
+    """The score folders this computer has: list each computer's, and each uses its own."""
+    return [p for p in (os.path.expanduser(f) for f in _list(s.get('score folders'), r';')) if os.path.isdir(p)]
 
 
 def folder_seasons(s=None):
@@ -295,7 +297,7 @@ def place_pdf(row, data, s=None):
     s = settings() if s is None else s
     folders = score_folders(s)
     if not folders:
-        raise ValueError('no score folder is set: add "score folders:" to ~/.psalter/library.txt')
+        raise ValueError('no score folder is set: add "score folders:" to parish/library/library.txt')
     if not data.startswith(b'%PDF'):
         raise ValueError('that file is not a PDF')
     rule = s.get('file new pdfs') or '{composer}-{title}.pdf'
@@ -343,7 +345,7 @@ def main():
         for f in r['missing']:
             print('missing:', f)
         if not score_folders():
-            print('no score folders set (score folders: in ~/.psalter/library.txt)')
+            print('no score folders set on this computer (score folders: in parish/library/library.txt)')
     else:
         rows = read()
         for season in SEASONS + ('',):

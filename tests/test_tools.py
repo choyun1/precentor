@@ -571,6 +571,8 @@ class Library(unittest.TestCase):
         self.assertIsNone(self.L.score_path('../' + os.path.basename(self.d) + '/Byrd-Vigilate.pdf', {'score folders': self.d + '/Lent'}))
         self.assertTrue(self.L.score_path('Byrd-Vigilate.pdf', s))
         self.assertEqual(self.L.scan(rows, {})['new'], [])                 # no score folders: nothing to look at
+        other = {'score folders': '/no/such/computer; ' + self.d}               # each computer uses the folder it has
+        self.assertEqual(self.L.score_folders(other), [self.d])
 
     def test_adding_a_pdf(self):
         os.makedirs(os.path.join(self.d, 'Easter'))
