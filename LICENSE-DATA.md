@@ -4,7 +4,7 @@ The data in this repository, other than the code, is licensed under the
 **Creative Commons Attribution 4.0 International License (CC BY 4.0)**:
 https://creativecommons.org/licenses/by/4.0/
 
-Copyright (c) 2026 Adrian Cho. Credit "Psalmody, by Adrian Cho" with a link to this repository.
+Copyright (c) 2026 Adrian Cho. Credit "Precentor, by Adrian Cho" with a link to this repository.
 
 This covers, among others: the chant catalog (`chants/catalog.csv`), the LilyPond encodings of the chants,
 the mood vocabulary and the texts' mood tags (`moods.txt`, `texts/moods.csv`), the orders of service

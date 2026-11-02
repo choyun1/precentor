@@ -108,7 +108,7 @@ def record_generated(what):
 
 def repos():
     out = []
-    for d, name in ((paths.PARISH, 'parish'), (paths.CORE, 'psalmody')):
+    for d, name in ((paths.PARISH, 'parish'), (paths.CORE, 'precentor')):
         if is_repo(d):
             out.append((d, name))
     return out

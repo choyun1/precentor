@@ -1,4 +1,4 @@
-# Psalmody repo notes
+# Precentor repo notes
 
 - Texts in `texts/*.txt` are the 1979 BCP words, unpointed, and must match it word for word; run `python tools/check_texts.py` after any text edit.
 - Never add pointing copied from a printed psalter (the Anglican Chant Psalter and others are under copyright) to `texts/`. A parish's own pointed copies go in `parish/texts/`, which take the place of the unpointed ones.
