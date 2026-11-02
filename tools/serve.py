@@ -589,15 +589,47 @@ def main():
         return
     srv.server_close()
     if SERVING.get('restart'):                       # after the first-run setup, or a Sync that brought new tools
-        print('starting again…')
-        again = [sys.executable, os.path.abspath(__file__), '--no-open']
-        if os.name == 'nt':                          # (Windows has no exec: run it and wait, in this window)
+        sys.exit(RESTART)                            # supervise() starts a fresh one
+
+
+RESTART = 3                                          # main()'s exit code for "start me again"
+
+
+def install_packages():
+    """What the launchers do before starting: the Python packages the tools and the plugins need (quick when
+    nothing is missing). Run again before a restart, since an update may need a new one."""
+    for r in [os.path.join(ROOT, 'requirements.txt')] + sorted(
+            os.path.join(paths.PARISH, 'plugins', p, 'requirements.txt') for p in
+            (os.listdir(os.path.join(paths.PARISH, 'plugins')) if paths.PARISH and
+             os.path.isdir(os.path.join(paths.PARISH, 'plugins')) else [])):
+        if os.path.exists(r) and subprocess.call([PY, '-m', 'pip', 'install', '-q', '--disable-pip-version-check',
+                                                  '-r', r]) != 0:
+            print(f'could not install the packages in {rel(r)} (see above)')
+
+
+def supervise():
+    """Run the launcher (main) in a process of its own, and start a fresh one each time it asks to be started again:
+    one copy at a time, whatever the computer (Windows has no exec, and a copy started from inside the old one
+    would keep the old one waiting, memory and all)."""
+    args = [a for a in sys.argv[1:] if a != '--serve']
+    while True:
+        child = subprocess.Popen([PY, os.path.abspath(__file__), '--serve'] + args)
+        if os.name != 'nt':                          # stopped from outside (kill): stop the one it runs too
+            import signal
+            signal.signal(signal.SIGTERM, lambda *a: (child.terminate(), sys.exit(0)))
+        while True:
             try:
-                sys.exit(subprocess.call(again))
-            except KeyboardInterrupt:                # Ctrl+C stops the new one (it says so); this one just goes
-                sys.exit(0)
-        os.execv(sys.executable, again)
+                code = child.wait()
+                break
+            except KeyboardInterrupt:                # Ctrl+C reaches both: let that one finish what it's saving
+                continue
+        if code != RESTART:
+            return code
+        print('starting again…')
+        install_packages()
+        if '--no-open' not in args:                  # the page is open already
+            args.append('--no-open')
 
 
 if __name__ == '__main__':
-    main()
+    sys.exit(main() if '--serve' in sys.argv else supervise())

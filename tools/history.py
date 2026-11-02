@@ -166,15 +166,33 @@ def undo(repo, sha):
     return True, msg.strip()
 
 
+def tools_only(d):
+    """Whether d is the precentor folder beside a parish folder: the tools, a public repository. Sync only brings
+    its updates in, and sends nothing but changes made in Precentor itself (a public-domain chant, say), never
+    whatever else lies in the folder."""
+    core = os.path.abspath(paths.CORE)
+    return bool(paths.PARISH) and os.path.abspath(d) == core != os.path.abspath(paths.PARISH)
+
+
+def to_send(d):
+    """The commits Sync would send from d: in the tools' folder, only if every one of them was made in Precentor."""
+    code, ahead = git(d, 'rev-list', '@{u}..HEAD')
+    shas = ahead.split() if code == 0 else []
+    if shas and tools_only(d):
+        code, bodies = git(d, 'log', '--format=%B%x00', '@{u}..HEAD')
+        if code != 0 or not all(any(m in b for m in MARKS) for b in bodies.split('\0') if b.strip()):
+            return []
+    return shas
+
+
 def pending():
-    """Files changed but not recorded, and recorded changes not yet on GitHub, per repository."""
+    """Files changed but not recorded, and recorded changes not yet on GitHub, per repository (in the tools' folder,
+    only what Sync would send)."""
     out = []
     for d, name in repos():
         code, st = git(d, 'status', '--porcelain', '-z')
-        files = [e[3:] for e in names(st) if len(e) > 3 and e[2] == ' '] if code == 0 else []
-        code, ahead = git(d, 'rev-list', '--count', '@{u}..HEAD')
-        out.append({'repo': name, 'files': files, 'unpushed': int(ahead.strip() or 0) if code == 0 else 0,
-                    'online': upstream(d)})
+        files = [e[3:] for e in names(st) if len(e) > 3 and e[2] == ' '] if code == 0 and not tools_only(d) else []
+        out.append({'repo': name, 'files': files, 'unpushed': len(to_send(d)), 'online': upstream(d)})
     return out
 
 
@@ -199,7 +217,7 @@ def _sync(message, log):
         if sys.platform.startswith('win'):          # Windows has no "executable" flag: never record losing it
             git(d, 'config', 'core.fileMode', 'false')
         code, st = git(d, 'status', '--porcelain')
-        if st.strip():
+        if st.strip() and not tools_only(d):          # the tools' folder: nothing is committed for you
             git(d, 'add', '-A')
             git(d, 'commit', '-q', '-m', message)
         if not upstream(d):                                          # a history kept only on this computer
@@ -220,6 +238,9 @@ def _sync(message, log):
                 git(d, 'add', '--', *clash)
                 code, out = git(d, 'commit', '-q', '--no-edit')
                 STALE['site'] = True
+            if code != 0 and tools_only(d) and 'would be overwritten' in out:
+                return False, (f'{name}: the update changes files you have edited in the precentor folder by hand '
+                               f'(Sync never sends those): put them aside, then sync again:\n{out.strip()}')
             if code != 0:
                 git(d, 'merge', '--abort')
                 which = ', '.join(clash[:5]) if clash else ''
@@ -233,6 +254,10 @@ def _sync(message, log):
         code, ahead = git(d, 'rev-list', '--count', '@{u}..HEAD')
         n = int(ahead.strip() or 0) if code == 0 else 0
         step(f'{name}: sending yours to GitHub')
+        if n and tools_only(d) and not to_send(d):        # commits of your own to the tools: not sent from here
+            log.append(f'{name}: {n} change(s) of your own to the tools, kept here (Sync sends only what '
+                       'Precentor saved there)')
+            continue
         if n:
             code, out = git(d, 'push', '-q')
             if code != 0 and d == paths.CORE and paths.PARISH:      # the tools are someone else's: bringing in is enough
