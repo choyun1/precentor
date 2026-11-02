@@ -589,6 +589,8 @@ class Library(unittest.TestCase):
                          ['Vigilate - William Byrd'])                    # the octavos' piece gets its PDF
         self.assertIsNone(self.L.score_path('../' + os.path.basename(self.d) + '/Byrd-Vigilate.pdf', {'score folders': self.d + '/Lent'}))
         self.assertTrue(self.L.score_path('Byrd-Vigilate.pdf', s))
+        open(os.path.join(self.d, 'run.bat'), 'w').write('echo')          # Open score opens PDFs, nothing else
+        self.assertIsNone(self.L.score_path('run.bat', s))
         self.assertEqual(self.L.scan(rows, {})['new'], [])                 # no score folders: nothing to look at
         other = {'score folders': '/no/such/computer; ' + self.d}               # each computer uses the folder it has
         self.assertEqual(self.L.score_folders(other), [self.d])
@@ -641,6 +643,8 @@ class Keystore(unittest.TestCase):
             self.assertEqual(keystore.get('precentor-gmail', 'music@example.org'), 'app password')
             self.assertTrue(os.path.exists(os.path.join(keystore.DIR, 'gmail.json')))        # now kept under the new name
             self.assertIsNone(keystore.get('precentor-gmail', 'someone@else.org'))
+            keystore.forget('precentor-gmail', 'music@example.org')
+            self.assertIsNone(keystore.get('precentor-gmail', 'music@example.org'))  # forgotten, not brought back
         finally:
             keystore.DIR, keystore.OLD_DIR, keystore._keyring = saved
             subprocess.run(['rm', '-rf', d])
