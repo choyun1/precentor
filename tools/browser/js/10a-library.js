@@ -50,7 +50,7 @@ function anthemOptions() {
   const rows = LIB.rows.filter(libReal).map(r => [libRank(r), r]).sort((a, b) => a[0] - b[0] || normT(a[1].Title).localeCompare(normT(b[1].Title)));
   const lib = rows.map(([k, r]) => {
     const sung = libSung(r), when = k === 0 ? "for this day" : r.Season ? SEASON_NAMES[r.Season] || r.Season : "any time";
-    return `<option value="${esc(libPiece(r))}">${esc(when)}${r.Format ? " · " + esc(r.Format) : ""}${sung.length ? ` · ${sung.length}× · last ${esc(sung[sung.length - 1])}` : " · not sung here yet"}</option>`;
+    return `<option value="${esc(libPiece(r))}">${libFor(r) === "organ" ? "organ · " : ""}${esc(when)}${r.Format ? " · " + esc(r.Format) : ""}${sung.length ? ` · ${sung.length}× · last ${esc(sung[sung.length - 1])}` : " · not sung here yet"}</option>`;
   });
   const rest = (REP.anthem || []).filter(x => !libFind(x[0])).map(r => `<option value="${esc(r[0])}">${r[1].length}× · last ${esc(r[1][r[1].length - 1])}</option>`);
   return (X.options[key] = lib.concat(rest).join(""));
@@ -109,19 +109,65 @@ async function libAdd(id) {
   renderBuilder();
 }
 // ---------- the Music library tab ----------
-const LV = {q: "", sort: "title", dir: 1};
+// organ alone, or the choir (with or without organ): from the Voicing, else guessed from the title
+const ORGAN_WORDS = /\b(voluntary|prelude|fugue|toccata|invention|trio|improvisation|organ|fantasia|postlude|chorale prelude|trumpet tune|partita|sortie|offertoire|carillon|almain|pavan|galliard)\b|\bBWV\s*[5-7]\d\d\b/i;
+const VOICES = /\b(s?a?t?b|satb|ssa|sab|ttbb|ttb|unison|choir|voices?|treble|soprano|alto|tenor|bass|cantor)\b/i;
+function libFor(r) {
+  const v = String(r.Voicing || "");
+  if (v) return /\b(organ|keyboard|piano|harpsichord)\b/i.test(v) && !VOICES.test(v) ? "organ" : "choir";
+  return ORGAN_WORDS.test(r.Title) && !VOICES.test(r.Title) ? "organ" : "choir";
+}
+const FOR_NAMES = {choir: "Choir", organ: "Organ"};
+const LV = {q: "", only: ""};
 const SEASON_ORDER = ["advent", "christmas", "epiphany", "lent", "holy_week", "easter", "pentecost", ""];
 const libLast = r => { const s = libSung(r); return s.length ? s[s.length - 1] : ""; };
-const LIB_COLS = {
-  title: ["Title", r => normT(r.Title)],
-  composer: ["Composer", r => normT(libSurname(r.Composer) + " " + r.Composer)],
-  season: ["Season", r => String(SEASON_ORDER.indexOf(r.Season || "")).padStart(2, "0") + normT(r.Title)],
-  where: ["Where", r => normT(libWhere(r)) || "~"],
-  sung: ["Sung", r => libLast(r) || "0"],
+// each field: its label, its usual direction, the value to sort on (empty: last, whichever way)
+const LIB_FIELDS = {
+  title: {label: "Title", dir: 1, val: r => normT(r.Title)},
+  composer: {label: "Composer", dir: 1, val: r => normT(libSurname(r.Composer) + " " + r.Composer)},
+  for: {label: "For", dir: 1, val: r => libFor(r)},
+  season: {label: "Season", dir: 1, val: r => String(SEASON_ORDER.indexOf(r.Season || "")).padStart(2, "0")},
+  where: {label: "Where", dir: 1, val: r => normT(libWhere(r))},
+  sung: {label: "Last sung", dir: -1, val: r => libLast(r)},
+  times: {label: "Times sung", dir: -1, val: r => String(libSung(r).length).padStart(4, "0")},
+  pdf: {label: "Has a PDF", dir: -1, val: r => libPdf(r) ? "1" : "0"},
 };
-function libSortBy(col) {
-  LV.dir = LV.sort === col ? -LV.dir : col === "sung" ? -1 : 1;     // (most recently sung first)
-  LV.sort = col; renderLibrary();
+LV.levels = (() => {
+  try { const v = JSON.parse(localStorage.getItem("precentor-sort-library")); if (Array.isArray(v) && v.length && v.every(l => LIB_FIELDS[l.f])) return v; } catch (e) {}
+  return [{f: "title", d: 1}];
+})();
+function libCompare(a, b) {
+  for (const l of LV.levels) {
+    const f = LIB_FIELDS[l.f], va = f.val(a), vb = f.val(b);
+    if (va === vb) continue;
+    if (va === "") return 1;
+    if (vb === "") return -1;
+    return (va < vb ? -1 : 1) * l.d;
+  }
+  return normT(a.Title).localeCompare(normT(b.Title));
+}
+function libSortChanged() { try { localStorage.setItem("precentor-sort-library", JSON.stringify(LV.levels)); } catch (e) {} renderLibrary(); }
+function libSortBy(f) {                       // a heading: sort by it first; again, the other way round
+  if (LV.levels[0].f === f) LV.levels[0].d *= -1;
+  else LV.levels = [{f, d: LIB_FIELDS[f].dir}].concat(LV.levels.filter(l => l.f !== f)).slice(0, 5);
+  libSortChanged();
+}
+function libSortSet(i, f) { LV.levels[i] = {f, d: LIB_FIELDS[f].dir}; libSortChanged(); }
+function libSortDir(i) { LV.levels[i].d *= -1; libSortChanged(); }
+function libSortDel(i) { LV.levels.splice(i, 1); libSortChanged(); }
+function libSortAdd() {
+  const used = new Set(LV.levels.map(l => l.f));
+  const f = ["composer", "season", "for", "title", "sung"].find(k => !used.has(k)) || "title";
+  LV.levels.push({f, d: LIB_FIELDS[f].dir}); libSortChanged();
+}
+function libSortControl() {
+  const opts = sel => Object.entries(LIB_FIELDS).map(([k, f]) => `<option value="${k}" ${k === sel ? "selected" : ""}>${esc(f.label)}</option>`).join("");
+  return `<div class="sortlevels" style="max-width:340px">${LV.levels.map((l, i) => `<div class="row" style="gap:4px;margin-bottom:4px;flex-wrap:nowrap">
+      <span class="hint" style="width:52px;flex:none">${i ? "then by" : "sort by"}</span>
+      <select onchange="libSortSet(${i}, this.value)" style="min-width:0;flex:1">${opts(l.f)}</select>
+      <button class="small" title="${l.d > 0 ? "ascending: click for descending" : "descending: click for ascending"}" onclick="libSortDir(${i})">${l.d > 0 ? "↑" : "↓"}</button>
+      ${i ? `<span class="link" title="remove" onclick="libSortDel(${i})">✕</span>` : ""}</div>`).join("")}
+    ${LV.levels.length < 5 ? `<span class="link hint" onclick="libSortAdd()">+ then by</span>` : ""}</div>`;
 }
 function libTools() {
   if (!SERVER) return "";
@@ -140,27 +186,30 @@ function renderLibrary() {
     return;
   }
   const q = normT(LV.q), real = LIB.rows.filter(libReal);
-  const hits = real.filter(r => !q || normT(libPiece(r) + " " + r.Occasion + " " + r.Voicing + " " + r.Location + " " + (SEASON_NAMES[r.Season] || "")).includes(q));
-  const key = (LIB_COLS[LV.sort] || LIB_COLS.title)[1];
-  const keyed = hits.map(r => [key(r), normT(r.Title), r]);
-  keyed.sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0) * LV.dir || a[1].localeCompare(b[1]));
-  const where = hits.some(r => libWhere(r)), date = B.date && SERVER ? B.date : "";
-  const cols = Object.keys(LIB_COLS).filter(c => c !== "where" || where);
-  const th = c => `<th class="sortable${c === "where" ? " libwhere" : ""}${LV.sort === c ? " on" : ""}" onclick="libSortBy('${c}')">${LIB_COLS[c][0]}${LV.sort === c ? (LV.dir > 0 ? " ▲" : " ▼") : ""}</th>`;
-  const rows = keyed.map(([, , r]) => {
-    const sung = libSung(r), i = LIB.rows.indexOf(r), pdf = libPdf(r);
+  const hits = real.filter(r => (!LV.only || libFor(r) === LV.only) && (!q || normT(libPiece(r) + " " + r.Occasion + " " + r.Voicing + " " + r.Location + " " + (SEASON_NAMES[r.Season] || "")).includes(q)))
+    .sort(libCompare);
+  const where = hits.some(r => libWhere(r)), date = B.date && SERVER ? B.date : "", first = LV.levels[0];
+  const cols = [["title", "Title"], ["composer", "Composer"], ["for", "For"], ["season", "Season"], ...(where ? [["where", "Where"]] : []), ["sung", "Sung"]];
+  const th = ([f, label]) => `<th class="sortable${f === "where" ? " libwhere" : ""}${first.f === f ? " on" : ""}" title="sort by this; again for the other way round" onclick="libSortBy('${f}')">${label}${first.f === f ? (first.d > 0 ? " ▲" : " ▼") : ""}</th>`;
+  const rows = hits.map(r => {
+    const sung = libSung(r), i = LIB.rows.indexOf(r), pdf = libPdf(r), fr = libFor(r);
     return `<tr><td>${pdf ? `<span class="link" title="open the PDF" onclick="libOpen(${i})">${esc(r.Title)}</span> <span class="hint">PDF</span>` : esc(r.Title)}
         ${date ? ` <span class="link hint" title="put it in the first empty anthem slot of the service for ${esc(date)}" onclick="libUse(${i})">+ service</span>` : ""}</td>
       <td>${esc(r.Composer)}${r.Years ? ` <span class="hint">(${esc(r.Years)})</span>` : ""}</td>
+      <td class="nowrap"><span class="forlabel ${fr}" title="${esc(r.Voicing || (fr === "organ" ? "organ alone (guessed from the title: set the Voicing to be sure)" : "the choir"))}">${FOR_NAMES[fr]}</span></td>
       <td class="hint nowrap">${r.Season ? esc(SEASON_NAMES[r.Season] || r.Season) : "any time"}</td>${where ? `<td class="hint libwhere">${libWhere(r)}</td>` : ""}
       <td class="hint nowrap">${sung.length ? `${sung.length}×, last ${esc(sung[sung.length - 1])}` : "not yet"}</td></tr>`;
   }).join("");
-  const tools = libTools();
+  const tools = libTools(), nOrgan = real.filter(r => libFor(r) === "organ").length;
+  const seg = (v, label) => `<button class="${LV.only === v ? "on" : ""}" onclick="LV.only='${v}'; renderLibrary()">${label}</button>`;
   el.innerHTML = `<div class="card">
-    <p style="margin:0 0 8px"><input type="search" id="libq" value="${esc(LV.q)}" placeholder="Find a title, composer, season, occasion…" oninput="LV.q=this.value; libRefresh()" style="width:min(360px,100%)">
-      <span class="hint">${hits.length === real.length ? real.length + " pieces" : hits.length + " of " + real.length + " pieces"}${Object.keys(LIB.pdfs || {}).length ? ` · ${Object.keys(LIB.pdfs).length} with a PDF on this computer` : ""} · click a heading to sort</span></p>
+    <div style="display:flex;gap:10px 28px;align-items:flex-start;flex-wrap:wrap;margin-bottom:8px">
+      <div style="width:min(340px,100%)"><input type="search" id="libq" value="${esc(LV.q)}" placeholder="Find a title, composer, season, occasion…" oninput="LV.q=this.value; libRefresh()" style="width:100%;box-sizing:border-box">
+        ${nOrgan ? `<div class="seg" style="max-width:340px;margin-top:6px">${seg("", "All")}${seg("choir", "Choir")}${seg("organ", "Organ")}</div>` : ""}
+        <p class="hint" style="margin:6px 0 0">${hits.length === real.length ? real.length + " pieces" : hits.length + " of " + real.length + " pieces"}${Object.keys(LIB.pdfs || {}).length ? ` · ${Object.keys(LIB.pdfs).length} with a PDF on this computer` : ""}</p></div>
+      ${libSortControl()}</div>
     <div id="libtable">${rows ? `<table class="libtable"><tr>${cols.map(th).join("")}</tr>${rows}</table>` : '<p class="hint">Nothing matches.</p>'}</div>
-    <p class="hint" style="margin:8px 0 0">${date ? `“+ service” puts a piece in the first empty anthem slot of the service for ${esc(date)} in the Service planner. ` : ""}Kept in ${esc(LIB.where)}.</p>
+    <p class="hint" style="margin:8px 0 0">${date ? `“+ service” puts a piece in the first empty anthem slot of the service for ${esc(date)} in the Service planner. ` : ""}Organ or choir comes from a piece's Voicing (“organ” alone is organ); without one, it's guessed from the title. Kept in ${esc(LIB.where)}.</p>
     ${tools ? `<p style="margin:8px 0 0">${tools}</p>` : ""}${libScanCard()}</div>`;
 }
 function libRefresh() {
