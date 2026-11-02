@@ -101,7 +101,7 @@ a, .link { color: var(--accent); cursor: pointer; text-decoration: none; }
 #changes td { padding: 3px 10px 3px 0; vertical-align: top; }
 #gitbar button { margin-left: 6px; }
 .icon { width: 1.15em; height: 1.15em; vertical-align: -0.22em; }
-button.sync .icon { margin-right: 2px; }
+button.sync .icon { width: 1.5em; height: 1.5em; vertical-align: -0.38em; margin: -4px 3px -4px -2px; }
 button.sync.busy .arrows { animation: spin 1.2s linear infinite; transform-box: view-box; transform-origin: 12px 13px; }
 @keyframes spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { button.sync.busy .arrows { animation-duration: 4s; } }
