@@ -573,6 +573,15 @@ class Library(unittest.TestCase):
         self.assertEqual(self.L.scan(rows, {})['new'], [])                 # no score folders: nothing to look at
         other = {'score folders': '/no/such/computer; ' + self.d}               # each computer uses the folder it has
         self.assertEqual(self.L.score_folders(other), [self.d])
+        from unittest import mock
+        with mock.patch.object(self.L, 'settings', return_value={'score folders': '/no/such/computer'}), \
+                mock.patch.object(self.L, 'read', return_value=[]):
+            self.assertEqual(self.L.page_data()['unfound'], ['/no/such/computer'])   # the page says which folder it looked for
+        with mock.patch.object(self.L, 'settings', return_value=other), mock.patch.object(self.L, 'read', return_value=[]):
+            self.assertEqual(self.L.page_data()['unfound'], [])
+        import serve                                                    # a page built elsewhere hears from this computer
+        with mock.patch.object(self.L, 'settings', return_value=other), mock.patch.object(serve.paths, 'PARISH', self.d):
+            self.assertEqual(serve.get_ping({})['library'], {'folders': True, 'unfound': []})
 
     def test_adding_a_pdf(self):
         os.makedirs(os.path.join(self.d, 'Easter'))
@@ -650,6 +659,15 @@ class Setup(unittest.TestCase):
 
 
 class Server(unittest.TestCase):
+    def test_a_tool_can_print_a_check_mark_on_windows(self):
+        import serve, tempfile
+        from unittest import mock
+        d = tempfile.mkdtemp()
+        open(os.path.join(d, 'tick.py'), 'w', encoding='utf-8').write("print('\u2713 fine')\n")
+        # Windows runs a tool's piped output in its code page (cp1252), which has no check mark
+        with mock.patch.object(serve, 'TOOLS', d), mock.patch.dict(os.environ, {'PYTHONIOENCODING': 'cp1252'}):
+            self.assertEqual(serve.run(['tick.py']), (0, '\u2713 fine'))
+
     def test_file_names(self):
         import serve
         self.assertEqual(serve.safe_name('2026-12-24-midnight'), '2026-12-24-midnight')

@@ -6,9 +6,23 @@ const SEASON_NAMES = {advent: "Advent", christmas: "Christmas", epiphany: "Epiph
   easter: "Easter", pentecost: "after Pentecost"};
 const libPiece = r => r.Composer ? `${r.Title} - ${r.Composer}${r.Years ? " (" + r.Years + ")" : ""}` : r.Title;
 const libSurname = x => normT((String(x || "").replace(/\(.*?\)/g, "").trim().split(/\s+/).pop() || ""));
+// an index of the library, so each lookup isn't a walk through every piece (and every anthem sung)
+let LIBX = null;
+function libIndex() {
+  if (LIBX && LIBX.rows === LIB.rows && LIBX.n === LIB.rows.length) return LIBX;
+  const byTitle = new Map();
+  for (const r of LIB.rows) { const k = normT(r.Title); if (!byTitle.has(k)) byTitle.set(k, []); byTitle.get(k).push(r); }
+  LIBX = {rows: LIB.rows, n: LIB.rows.length, byTitle, found: new Map(), sung: null, options: {}};
+  return LIBX;
+}
+const libChanged = () => { LIBX = null; };
 function libFind(v) {
-  const [t, c] = splitPiece(String(v || ""));
-  return LIB.rows.find(r => normT(r.Title) === normT(t) && (!c || libSurname(r.Composer) === libSurname(c))) || null;
+  const X = libIndex(), key = String(v || "");
+  if (!X.found.has(key)) {
+    const [t, c] = splitPiece(key);
+    X.found.set(key, (X.byTitle.get(normT(t)) || []).find(r => !c || libSurname(r.Composer) === libSurname(c)) || null);
+  }
+  return X.found.get(key);
 }
 const daySeason = () => (SV.seasons || {})[B.date] || "";
 function libOccasion(r) {
@@ -18,8 +32,12 @@ function libOccasion(r) {
 // 0: for this day, 1: this season, 2: any time, 3: another season
 const libRank = r => libOccasion(r) ? 0 : r.Season && r.Season === daySeason() ? 1 : !r.Season ? 2 : 3;
 function libSung(r) {
-  const hit = (REP.anthem || []).find(x => libFind(x[0]) === r);
-  return hit ? hit[1].filter(d => d < (B.date || "9999")) : [];
+  const X = libIndex();
+  if (!X.sung) {
+    X.sung = new Map();
+    for (const x of REP.anthem || []) { const hit = libFind(x[0]); if (hit && !X.sung.has(hit)) X.sung.set(hit, x[1]); }
+  }
+  return (X.sung.get(r) || []).filter(d => d < (B.date || "9999"));
 }
 function libWhere(r) {
   const bits = [r.Format, r.Location, r.Copies ? r.Copies + " copies" : "", r["Publisher no."] ? "order no. " + r["Publisher no."] : "", r.Voicing];
@@ -27,13 +45,15 @@ function libWhere(r) {
 }
 // the anthem box's suggestions: the library for this day first, then everything sung before that isn't in it
 function anthemOptions() {
+  const X = libIndex(), key = B.date || "";
+  if (X.options[key] !== undefined) return X.options[key];
   const rows = LIB.rows.map(r => [libRank(r), r]).sort((a, b) => a[0] - b[0] || normT(a[1].Title).localeCompare(normT(b[1].Title)));
   const lib = rows.map(([k, r]) => {
     const sung = libSung(r), when = k === 0 ? "for this day" : r.Season ? SEASON_NAMES[r.Season] || r.Season : "any time";
     return `<option value="${esc(libPiece(r))}">${esc(when)}${r.Format ? " · " + esc(r.Format) : ""}${sung.length ? ` · ${sung.length}× · last ${esc(sung[sung.length - 1])}` : " · not sung here yet"}</option>`;
   });
   const rest = (REP.anthem || []).filter(x => !libFind(x[0])).map(r => `<option value="${esc(r[0])}">${r[1].length}× · last ${esc(r[1][r[1].length - 1])}</option>`);
-  return lib.concat(rest).join("");
+  return (X.options[key] = lib.concat(rest).join(""));
 }
 // under an anthem: what the library knows of it, with its PDF
 function libHint(v) {
@@ -82,7 +102,7 @@ async function libAdd(id) {
   }
   const j = await post("/api/library/add", body);
   if (!j.ok) { alert(j.error || "could not add it"); return; }
-  const old = libFind(libPiece(j.row)); if (old) Object.assign(old, j.row); else LIB.rows.push(j.row);
+  const old = libFind(libPiece(j.row)); if (old) Object.assign(old, j.row); else LIB.rows.push(j.row); libChanged();
   renderBuilder();
 }
 // the library card, under the rest of the service
@@ -90,7 +110,8 @@ function libraryCard() {
   if (!ORDER_NAMES.length || (!LIB.rows.length && !SERVER)) return "";
   const notIn = (REP.anthem || []).filter(x => !hymnsOf(x[0]).length && !libFind(x[0])).length;
   const tools = SERVER ? [notIn ? `<button class="small" onclick="libFromRecord()">Add the ${notIn} ${notIn === 1 ? "anthem" : "anthems"} sung here before</button>` : "",
-    LIB.folders ? `<button class="small" onclick="libScan()">Look for new PDFs</button>` : ""].filter(Boolean).join(" ") : "";
+    LIB.folders ? `<button class="small" onclick="libScan()">Look for new PDFs</button>`
+    : (LIB.unfound || []).length ? `<p class="hint" style="margin:6px 0 0"><span class="warn">Score folder not found</span> on this computer: ${LIB.unfound.map(esc).join("; ")}. Fix "score folders:" in parish/library/library.txt to look for new PDFs here.</p>` : ""].filter(Boolean).join(" ") : "";
   if (!LIB.rows.length) {
     return `<div class="card"><h3 style="font-weight:normal;margin:0 0 4px">Music library <span class="hint">· none yet</span></h3>
       <p class="hint" style="margin:0 0 8px">A list of the music you have, so the anthem boxes can suggest pieces for the season and say where the copies are. Start it from what's been sung, add pieces one at a time from an anthem box, or put a spreadsheet at ${esc(LIB.where)}.</p>
@@ -132,7 +153,7 @@ function libUse(i) {
 async function libFromRecord() {
   const j = await post("/api/library/from-record", {});
   if (!j.ok) { alert(j.error || "could not do it"); return; }
-  LIB.rows = j.rows; B.libOpen = true; renderBuilder();
+  LIB.rows = j.rows; B.libOpen = true; libChanged(); renderBuilder();
 }
 async function libScan() {
   const j = await post("/api/library/scan", {});
@@ -157,6 +178,6 @@ async function libKeep() {
   const rows = s.new.map((r, i) => ($("#lk-" + i) || {}).checked ? Object.assign({}, r, {Composer: $("#lkc-" + i).value.trim(), Title: $("#lkt-" + i).value.trim(), Season: $("#lks-" + i).value}) : null).filter(Boolean);
   const j = await post("/api/library/keep", {rows, moved: s.moved});
   if (!j.ok) { alert(j.error || "could not keep them"); return; }
-  LIB.rows = j.rows; B.libScan = null; renderBuilder();
+  LIB.rows = j.rows; B.libScan = null; libChanged(); renderBuilder();
 }
 PLUGINS.cards.unshift(libraryCard);

@@ -26,8 +26,9 @@ MAX_BODY = 20 * 1024 * 1024
 
 # ------------------------------------------------------------------ running the tools
 def run(args, timeout=900):
-    r = subprocess.run([PY, os.path.join(TOOLS, args[0])] + args[1:], cwd=ROOT,
-                       capture_output=True, text=True, timeout=timeout)
+    env = dict(os.environ, PYTHONIOENCODING='utf-8', PYTHONUTF8='1')    # Windows' console code page can't print ✓
+    r = subprocess.run([PY, os.path.join(TOOLS, args[0])] + args[1:], cwd=ROOT, env=env,
+                       capture_output=True, text=True, encoding='utf-8', errors='replace', timeout=timeout)
     return r.returncode, (r.stdout + ('\n' + r.stderr if r.stderr.strip() else '')).strip()
 
 
@@ -429,7 +430,8 @@ def restart():
 
 def get_ping(q):
     if paths.PARISH:
-        return {'ok': True, 'setup': False}
+        import library                              # the built page may come from another computer
+        return {'ok': True, 'setup': False, 'library': library.folder_status()}
     import setup                                    # no parish folder yet: what the first-run form offers
     return {'ok': True, 'setup': True, 'feasts': [{'key': k, 'name': n, 'date': md} for md, k, n in setup.FEASTS]}
 

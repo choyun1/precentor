@@ -324,9 +324,18 @@ def place_pdf(row, data, s=None):
 
 
 # ------------------------------------------------------------------ for the page
+def folder_status(s=None):
+    """Whether this computer has a score folder, or which listed ones it looked for. The page is built once and
+    committed, so the launcher tells it again on each computer (serve.py's /api/ping)."""
+    s = settings() if s is None else s
+    found = score_folders(s)
+    return {'folders': bool(found),
+            'unfound': [] if found else [os.path.expanduser(f) for f in _list(s.get('score folders'), r';')]}
+
+
 def page_data():
     s = settings()
-    return {'rows': read(), 'folders': bool(score_folders(s)), 'seasons': list(SEASONS), 'formats': list(FORMATS),
+    return {'rows': read(), **folder_status(s), 'seasons': list(SEASONS), 'formats': list(FORMATS),
             'where': os.path.relpath(catalog_file(s), paths.HOME).replace(os.sep, '/')
             if catalog_file(s).startswith(paths.HOME) else catalog_file(s)}
 
