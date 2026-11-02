@@ -195,6 +195,8 @@ def sync(message):
 def _sync(message, log):
     for d, name in repos():
         step(f'{name}: saving what changed here')
+        if sys.platform.startswith('win'):          # Windows has no "executable" flag: never record losing it
+            git(d, 'config', 'core.fileMode', 'false')
         code, st = git(d, 'status', '--porcelain')
         if st.strip():
             git(d, 'add', '-A')
