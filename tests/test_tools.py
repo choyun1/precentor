@@ -546,12 +546,25 @@ class Library(unittest.TestCase):
     def test_from_what_was_sung(self):
         rep = {'anthem': [['Hodie - Sweelinck', ['2024-12-24', '2025-12-25']],
                           ['O taste and see - Ralph Vaughan Williams (1872-1958)', ['2025-03-02', '2025-07-13', '2025-10-05']],
-                          ['390', ['2025-01-05']]]}
+                          ['390', ['2025-01-05']], ['???', ['2025-02-02']]]}
         rows, n = self.L.from_record([], rep)
-        self.assertEqual(n, 2)                                            # a hymn number isn't a piece
+        self.assertEqual(n, 2)                                  # a hymn number isn't a piece, nor '???'
         self.assertEqual(rows[0]['Season'], 'christmas')
         self.assertEqual((rows[1]['Season'], rows[1]['Years']), ('', '1872-1958'))   # all year round: any time
         self.assertEqual(self.L.from_record(rows, rep)[1], 0)
+
+    def test_pdfs_found_for_pieces(self):
+        os.makedirs(os.path.join(self.d, 'Advent'))
+        for f in ('Advent/Tallis-Audivi_vocem.pdf', 'Thomson_R-My_Shepherd_Will_Supply_My_Need.pdf', 'Byrd-Ave_verum.pdf'):
+            open(os.path.join(self.d, f), 'wb').write(b'%PDF')
+        rows = self.rows({'Title': 'Audivi vocem de caelo', 'Composer': 'Thomas Tallis', 'Years': 'c. 1505-1585'},
+                         {'Title': 'My Shepherd will supply my need', 'Composer': 'Virgil Thomson'},
+                         {'Title': 'Ave verum corpus', 'Composer': 'W. A. Mozart'},          # Byrd's isn't Mozart's
+                         {'Title': 'Hodie', 'File': 'Hodie.pdf'})                             # not on this computer
+        got = self.L.pdfs(rows, {'score folders': self.d})
+        self.assertEqual(got, {'Audivi vocem de caelo - Thomas Tallis (c. 1505-1585)': 'Advent/Tallis-Audivi_vocem.pdf',
+                               'My Shepherd will supply my need - Virgil Thomson': 'Thomson_R-My_Shepherd_Will_Supply_My_Need.pdf'})
+        self.assertEqual(self.L.pdfs(rows, {}), {})
 
     def test_any_folders(self):
         for f in ('Lent/Farrant-Hide_not_thou_thy_face.pdf', 'Byrd-Vigilate.pdf', 'Hymns/x.pdf', 'General/Tallis-If_ye_love_me.pdf'):
@@ -581,7 +594,7 @@ class Library(unittest.TestCase):
             self.assertEqual(self.L.page_data()['unfound'], [])
         import serve                                                    # a page built elsewhere hears from this computer
         with mock.patch.object(self.L, 'settings', return_value=other), mock.patch.object(serve.paths, 'PARISH', self.d):
-            self.assertEqual(serve.get_ping({})['library'], {'folders': True, 'unfound': []})
+            self.assertEqual(serve.get_ping({})['library'], {'folders': True, 'pdfs': {}, 'unfound': []})
 
     def test_adding_a_pdf(self):
         os.makedirs(os.path.join(self.d, 'Easter'))

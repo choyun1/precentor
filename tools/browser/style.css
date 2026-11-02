@@ -212,4 +212,5 @@ button:disabled { opacity: .55; cursor: wait; }
 .libtable th { text-align: left; font-weight: normal; color: var(--muted); border-bottom: 1px solid var(--line); padding: 2px 6px; }
 .libtable td { padding: 3px 6px; vertical-align: top; border-bottom: 1px solid var(--line); }
 .libtable td input[type=text] { width: 100%; min-width: 8em; }
-@media (max-width: 640px) { .libtable th:nth-child(3), .libtable td:nth-child(3) { display: none; } }
+.libtable .nowrap { white-space: nowrap; }
+@media (max-width: 640px) { .libtable .libwhere { display: none; } }
