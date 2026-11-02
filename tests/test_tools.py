@@ -679,6 +679,17 @@ class Setup(unittest.TestCase):
 
 
 class Server(unittest.TestCase):
+    def test_lilypond_found_where_it_was_unzipped(self):
+        import build
+        from unittest import mock
+        home = tempfile.mkdtemp()
+        for v in ('2.24.4', '2.26.0'):
+            os.makedirs(os.path.join(home, 'Downloads', f'lilypond-{v}', 'bin'))
+            open(os.path.join(home, 'Downloads', f'lilypond-{v}', 'bin', 'lilypond.exe'), 'w').close()
+        with mock.patch.dict(os.environ, {'HOME': home, 'USERPROFILE': home}):
+            self.assertEqual(build.installed_lilyponds()[0],
+                             os.path.join(home, 'Downloads', 'lilypond-2.26.0', 'bin', 'lilypond.exe'))   # the newest
+
     def test_the_emailed_pictures_are_cut_to_the_ink(self):
         import build
         from PIL import Image

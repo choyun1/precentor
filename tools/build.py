@@ -536,15 +536,31 @@ def checks(sunday, psalms, chants):
 
 
 # ================================================================== LilyPond
+def installed_lilyponds():
+    """LilyPond where it's usually unpacked or installed, when it isn't on the PATH (Windows and macOS have no
+    installer that puts it there)."""
+    import glob
+    home = os.path.expanduser('~')
+    pats = [os.path.join(d, 'lilypond*', 'bin', 'lilypond.exe') for d in
+            (os.environ.get('ProgramFiles', r'C:\Program Files'), os.environ.get('ProgramFiles(x86)', r'C:\Program Files (x86)'),
+             os.environ.get('LOCALAPPDATA', ''), home, os.path.join(home, 'Downloads'), os.path.join(home, 'Documents'), 'C:\\')
+            if d] + ['/Applications/LilyPond.app/Contents/Resources/bin/lilypond', '/Applications/lilypond*/bin/lilypond',
+                     os.path.join(home, 'lilypond*', 'bin', 'lilypond'), '/opt/homebrew/bin/lilypond', '/usr/local/bin/lilypond']
+    found = [p for pat in pats for p in glob.glob(pat) if os.path.isfile(p)]
+    return sorted(found, reverse=True)                  # lilypond-2.26.0 before lilypond-2.24.4
+
+
 def lilypond_exe():
-    for cand in (os.environ.get('LILYPOND'), shutil.which('lilypond')):
+    for cand in (os.environ.get('LILYPOND'), shutil.which('lilypond'), *installed_lilyponds()):
         if cand:
             return cand
     try:
         import lilypond            # pip package "lilypond"
         return str(lilypond.executable())
     except Exception:
-        raise SystemExit('LilyPond not found: install it, or set LILYPOND to the program\'s path')
+        raise SystemExit('LilyPond not found. Install it from https://lilypond.org/download.html (on Windows, unzip it '
+                         'into Program Files, your home folder or Downloads, where Precentor looks for it), or set '
+                         'LILYPOND to the program\'s path, or run: python -m pip install lilypond')
 
 
 def lilypond_version(exe):
