@@ -1,3 +1,6 @@
+# Text files are kept with Unix line endings in the repository (and checked out as each computer likes),
+# so a copy that came from Windows (e.g. by Syncthing) cannot change every line.
+* text=auto
 # Shell scripts keep Unix line endings even when checked out on Windows (a folder synced from
 # Windows to Linux, e.g. by Syncthing, otherwise brings CRLFs that bash cannot read).
 *.sh  text eol=lf
