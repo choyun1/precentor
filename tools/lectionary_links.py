@@ -27,7 +27,7 @@ STOP = {'the', 'of', 'a', 'b', 'c', 'day', 'and', 'in', 'our', 'lord', 'saint'}
 
 
 def month_page(y, m):
-    req = urllib.request.Request(f'{lectionary.SITE}/{y}/{m}', headers={'User-Agent': 'psalmody (lectionary links)'})
+    req = urllib.request.Request(f'{lectionary.SITE}/{y}/{m}', headers={'User-Agent': 'precentor (lectionary links)'})
     with urllib.request.urlopen(req, timeout=60) as r:
         return r.read().decode('utf-8', 'replace')
 
