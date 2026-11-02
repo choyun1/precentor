@@ -63,7 +63,7 @@ function libHint(v) {
 }
 // the PDF of a piece on this computer (the launcher matches the score folders' files to the library: /api/ping)
 const libPdf = r => SERVER && LIB.folders ? (LIB.pdfs || {})[libPiece(r)] || "" : "";
-const libReal = r => !!String(r.Title || "").replace(/[\s?.\-–—]/g, "");     // not a "???" placeholder
+const libReal = r => !/^(|tbd|tba)$/i.test(String(r.Title || "").replace(/[\s?.\-–—]/g, ""));   // not "???" or "TBD"
 async function libOpen(i) {
   const j = await post("/api/score", {file: libPdf(LIB.rows[i])});
   if (!j.ok) alert(j.error || "could not open it");
@@ -108,62 +108,87 @@ async function libAdd(id) {
   const old = libFind(libPiece(j.row)); if (old) Object.assign(old, j.row); else LIB.rows.push(j.row); libChanged();
   renderBuilder();
 }
-// the library card, under the rest of the service
-function libraryCard() {
-  if (!ORDER_NAMES.length || (!LIB.rows.length && !SERVER)) return "";
+// ---------- the Music library tab ----------
+const LV = {q: "", sort: "title", dir: 1};
+const SEASON_ORDER = ["advent", "christmas", "epiphany", "lent", "holy_week", "easter", "pentecost", ""];
+const libLast = r => { const s = libSung(r); return s.length ? s[s.length - 1] : ""; };
+const LIB_COLS = {
+  title: ["Title", r => normT(r.Title)],
+  composer: ["Composer", r => normT(libSurname(r.Composer) + " " + r.Composer)],
+  season: ["Season", r => String(SEASON_ORDER.indexOf(r.Season || "")).padStart(2, "0") + normT(r.Title)],
+  where: ["Where", r => normT(libWhere(r)) || "~"],
+  sung: ["Sung", r => libLast(r) || "0"],
+};
+function libSortBy(col) {
+  LV.dir = LV.sort === col ? -LV.dir : col === "sung" ? -1 : 1;     // (most recently sung first)
+  LV.sort = col; renderLibrary();
+}
+function libTools() {
+  if (!SERVER) return "";
   const notIn = (REP.anthem || []).filter(x => libReal({Title: x[0]}) && !hymnsOf(x[0]).length && !libFind(x[0])).length;
-  const tools = SERVER ? [notIn ? `<button class="small" onclick="libFromRecord()">Add the ${notIn} ${notIn === 1 ? "anthem" : "anthems"} sung here before</button>` : "",
+  return [notIn ? `<button class="small" onclick="libFromRecord()">Add the ${notIn} ${notIn === 1 ? "anthem" : "anthems"} sung here before</button>` : "",
     LIB.folders ? `<button class="small" onclick="libScan()">Look for new PDFs</button>`
-    : (LIB.unfound || []).length ? `<p class="hint" style="margin:6px 0 0"><span class="warn">Score folder not found</span> on this computer: ${LIB.unfound.map(esc).join("; ")}. Fix "score folders:" in parish/library/library.txt to look for new PDFs here.</p>` : ""].filter(Boolean).join(" ") : "";
+    : (LIB.unfound || []).length ? `<p class="hint" style="margin:6px 0 0"><span class="warn">Score folder not found</span> on this computer: ${LIB.unfound.map(esc).join("; ")}. Fix "score folders:" in parish/library/library.txt to look for new PDFs here.</p>` : ""].filter(Boolean).join(" ");
+}
+function renderLibrary() {
+  const nav = $('nav button[data-tab="library"]'); if (nav) nav.hidden = !LIB.rows.length && !SERVER;
+  const el = $("#tab-library"); if (!el || el.hidden) return;
   if (!LIB.rows.length) {
-    return `<div class="card"><h3 style="font-weight:normal;margin:0 0 4px">Music library <span class="hint">· none yet</span></h3>
-      <p class="hint" style="margin:0 0 8px">A list of the music you have, so the anthem boxes can suggest pieces for the season and say where the copies are. Start it from what's been sung, add pieces one at a time from an anthem box, or put a spreadsheet at ${esc(LIB.where)}.</p>
-      ${tools}${libScanCard()}</div>`;
+    el.innerHTML = `<div class="card"><h3 style="font-weight:normal;margin:0 0 4px">Music library <span class="hint">· none yet</span></h3>
+      <p class="hint" style="margin:0 0 8px">A list of the music you have, so the anthem boxes can suggest pieces for the season and say where the copies are. Start it from what's been sung, add pieces one at a time from an anthem box in the Service planner, or put a spreadsheet at ${esc(LIB.where)}.</p>
+      ${libTools()}${libScanCard()}</div>`;
+    return;
   }
-  const q = normT(B.libQ || ""), season = daySeason();
-  const hits = LIB.rows.filter(libReal).filter(r => q ? normT(libPiece(r) + " " + r.Occasion + " " + r.Voicing + " " + r.Location).includes(q) : libRank(r) < 3)
-    .sort((a, b) => libRank(a) - libRank(b) || normT(a.Title).localeCompare(normT(b.Title)));
-  const shown = hits.slice(0, 60);
-  const where = shown.some(r => libWhere(r));                // (a Where column only when something says where)
-  const rows = shown.map(r => {
-    const sung = libSung(r), i = LIB.rows.indexOf(r);
-    return `<tr><td><span class="link" title="use it in this service" onclick="libUse(${i})">${esc(r.Title)}</span>${libPdf(r) ? ` <span class="link hint" title="open the PDF" onclick="libOpen(${i})">PDF</span>` : ""}</td>
+  const q = normT(LV.q), real = LIB.rows.filter(libReal);
+  const hits = real.filter(r => !q || normT(libPiece(r) + " " + r.Occasion + " " + r.Voicing + " " + r.Location + " " + (SEASON_NAMES[r.Season] || "")).includes(q));
+  const key = (LIB_COLS[LV.sort] || LIB_COLS.title)[1];
+  const keyed = hits.map(r => [key(r), normT(r.Title), r]);
+  keyed.sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0) * LV.dir || a[1].localeCompare(b[1]));
+  const where = hits.some(r => libWhere(r)), date = B.date && SERVER ? B.date : "";
+  const cols = Object.keys(LIB_COLS).filter(c => c !== "where" || where);
+  const th = c => `<th class="sortable${c === "where" ? " libwhere" : ""}${LV.sort === c ? " on" : ""}" onclick="libSortBy('${c}')">${LIB_COLS[c][0]}${LV.sort === c ? (LV.dir > 0 ? " ▲" : " ▼") : ""}</th>`;
+  const rows = keyed.map(([, , r]) => {
+    const sung = libSung(r), i = LIB.rows.indexOf(r), pdf = libPdf(r);
+    return `<tr><td>${pdf ? `<span class="link" title="open the PDF" onclick="libOpen(${i})">${esc(r.Title)}</span> <span class="hint">PDF</span>` : esc(r.Title)}
+        ${date ? ` <span class="link hint" title="put it in the first empty anthem slot of the service for ${esc(date)}" onclick="libUse(${i})">+ service</span>` : ""}</td>
       <td>${esc(r.Composer)}${r.Years ? ` <span class="hint">(${esc(r.Years)})</span>` : ""}</td>
-      <td class="hint nowrap">${r.Season ? esc(SEASON_NAMES[r.Season] || r.Season) : "any time"}${libRank(r) === 0 ? " · this day" : ""}</td>${where ? `<td class="hint libwhere">${libWhere(r)}</td>` : ""}
+      <td class="hint nowrap">${r.Season ? esc(SEASON_NAMES[r.Season] || r.Season) : "any time"}</td>${where ? `<td class="hint libwhere">${libWhere(r)}</td>` : ""}
       <td class="hint nowrap">${sung.length ? `${sung.length}×, last ${esc(sung[sung.length - 1])}` : "not yet"}</td></tr>`;
   }).join("");
-  const forNow = LIB.rows.filter(r => libReal(r) && libRank(r) < 2).length, real = LIB.rows.filter(libReal).length;
-  return `<details class="card" ${B.libOpen ? "open" : ""} ontoggle="B.libOpen=this.open"><summary style="color:var(--ink)">Music library <span class="hint">· ${real} pieces${season ? `, ${forNow} for ${esc(SEASON_NAMES[season] || season)}` : ""}</span></summary>
-    <p style="margin:8px 0"><input type="search" id="libq" value="${esc(B.libQ || "")}" placeholder="Find a title, composer, occasion…" oninput="B.libQ=this.value; libRefresh()" style="width:min(360px,100%)">
-      <span class="hint">${q ? "" : "this day, this season and any time; type to look through everything"}</span></p>
-    <div id="libtable">${rows ? `<table class="libtable"><tr><th>Title</th><th>Composer</th><th>Season</th>${where ? '<th class="libwhere">Where</th>' : ""}<th>Sung</th></tr>${rows}</table>${hits.length > shown.length ? `<p class="hint">and ${hits.length - shown.length} more: type to narrow them down</p>` : ""}` : '<p class="hint">Nothing matches.</p>'}</div>
-    <p class="hint" style="margin:8px 0 0">Click a piece to put it in the first empty anthem slot. Kept in ${esc(LIB.where)}.</p>
-    ${tools ? `<p style="margin:8px 0 0">${tools}</p>` : ""}${libScanCard()}</details>`;
+  const tools = libTools();
+  el.innerHTML = `<div class="card">
+    <p style="margin:0 0 8px"><input type="search" id="libq" value="${esc(LV.q)}" placeholder="Find a title, composer, season, occasion…" oninput="LV.q=this.value; libRefresh()" style="width:min(360px,100%)">
+      <span class="hint">${hits.length === real.length ? real.length + " pieces" : hits.length + " of " + real.length + " pieces"}${Object.keys(LIB.pdfs || {}).length ? ` · ${Object.keys(LIB.pdfs).length} with a PDF on this computer` : ""} · click a heading to sort</span></p>
+    <div id="libtable">${rows ? `<table class="libtable"><tr>${cols.map(th).join("")}</tr>${rows}</table>` : '<p class="hint">Nothing matches.</p>'}</div>
+    <p class="hint" style="margin:8px 0 0">${date ? `“+ service” puts a piece in the first empty anthem slot of the service for ${esc(date)} in the Service planner. ` : ""}Kept in ${esc(LIB.where)}.</p>
+    ${tools ? `<p style="margin:8px 0 0">${tools}</p>` : ""}${libScanCard()}</div>`;
 }
 function libRefresh() {
   const pos = $("#libq") ? $("#libq").selectionStart : null;
-  renderBuilder();
+  renderLibrary();
   const q = $("#libq"); if (q) { q.focus(); if (pos !== null) q.setSelectionRange(pos, pos); }
 }
 function libUse(i) {
   const v = libPiece(LIB.rows[i]);
   if (isSeq()) {
     const s = slotsOf(curOrder()).find(x => x.kind === "anthem");
-    B.seq.push([s ? s.key : "also", v]); renderBuilder(); return;
+    B.seq.push([s ? s.key : "also", v]);
+  } else {
+    const s = slotsOf(curOrder()).filter(x => x.kind === "anthem").find(x => !(B.svc[x.key] || "").trim());
+    if (!s) { alert("Every anthem slot of that service is filled: empty one first."); return; }
+    B.svc[s.key] = v;
   }
-  const s = slotsOf(curOrder()).filter(x => x.kind === "anthem").find(x => !(B.svc[x.key] || "").trim());
-  if (!s) { alert("Every anthem slot is filled: empty one first."); return; }
-  B.svc[s.key] = v; renderBuilder();
+  $('nav button[data-tab="builder"]').click();
 }
 async function libFromRecord() {
   const j = await post("/api/library/from-record", {});
   if (!j.ok) { alert(j.error || "could not do it"); return; }
-  LIB.rows = j.rows; B.libOpen = true; libChanged(); renderBuilder();
+  LIB.rows = j.rows; libChanged(); renderLibrary();
 }
 async function libScan() {
   const j = await post("/api/library/scan", {});
   if (!j.ok) { alert(j.error || "could not look"); return; }
-  B.libScan = j; B.libOpen = true; renderBuilder();
+  B.libScan = j; renderLibrary();
 }
 function libScanCard() {
   const s = B.libScan; if (!s) return "";
@@ -176,13 +201,13 @@ function libScanCard() {
         <td><input type="text" id="lkt-${i}" value="${esc(r.Title)}"></td><td><select id="lks-${i}">${opt(r.Season)}</select></td><td class="hint">${esc(r.File)}${r.Matches ? `<br>the PDF of ${esc(r.Matches)}, already in the library` : ""}</td></tr>`).join("")}</table>` : ""}
     ${s.moved.length ? `<p class="hint" style="margin:4px 0">Moved (the library will follow): ${s.moved.map(([a, b]) => esc(a) + " → " + esc(b)).join("; ")}</p>` : ""}
     ${s.missing.length ? `<p class="hint" style="margin:4px 0"><span class="warn">Not found</span> (left in the library): ${s.missing.map(esc).join("; ")}</p>` : ""}
-    ${s.new.length || s.moved.length ? `<button class="small primary" onclick="libKeep()">Keep these</button>` : ""} <button class="small" onclick="B.libScan=null; renderBuilder()">Close</button></div>`;
+    ${s.new.length || s.moved.length ? `<button class="small primary" onclick="libKeep()">Keep these</button>` : ""} <button class="small" onclick="B.libScan=null; renderLibrary()">Close</button></div>`;
 }
 async function libKeep() {
   const s = B.libScan;
   const rows = s.new.map((r, i) => ($("#lk-" + i) || {}).checked ? Object.assign({}, r, {Composer: $("#lkc-" + i).value.trim(), Title: $("#lkt-" + i).value.trim(), Season: $("#lks-" + i).value}) : null).filter(Boolean);
   const j = await post("/api/library/keep", {rows, moved: s.moved});
   if (!j.ok) { alert(j.error || "could not keep them"); return; }
-  LIB.rows = j.rows; B.libScan = null; libChanged(); renderBuilder();
+  LIB.rows = j.rows; B.libScan = null; libChanged(); renderLibrary();
 }
-PLUGINS.cards.unshift(libraryCard);
+

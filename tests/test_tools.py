@@ -546,12 +546,18 @@ class Library(unittest.TestCase):
     def test_from_what_was_sung(self):
         rep = {'anthem': [['Hodie - Sweelinck', ['2024-12-24', '2025-12-25']],
                           ['O taste and see - Ralph Vaughan Williams (1872-1958)', ['2025-03-02', '2025-07-13', '2025-10-05']],
-                          ['390', ['2025-01-05']], ['???', ['2025-02-02']]]}
+                          ['390', ['2025-01-05']], ['???', ['2025-02-02']], ['TBD', ['2025-02-09']]]}
         rows, n = self.L.from_record([], rep)
         self.assertEqual(n, 2)                                  # a hymn number isn't a piece, nor '???'
         self.assertEqual(rows[0]['Season'], 'christmas')
         self.assertEqual((rows[1]['Season'], rows[1]['Years']), ('', '1872-1958'))   # all year round: any time
         self.assertEqual(self.L.from_record(rows, rep)[1], 0)
+
+    def test_dates_with_a_dash(self):
+        self.assertEqual(self.L.split_piece('Song for Athene - John Tavener (1944 - 2013)'),
+                         ('Song for Athene', 'John Tavener', '1944-2013'))
+        self.assertEqual(self.L.split_piece('Hodie - Sweelinck'), ('Hodie', 'Sweelinck', ''))
+        self.assertEqual(self.L.split_piece('Anthem (1990)'), ('Anthem (1990)', '', ''))
 
     def test_pdfs_found_for_pieces(self):
         os.makedirs(os.path.join(self.d, 'Advent'))
@@ -593,7 +599,8 @@ class Library(unittest.TestCase):
         with mock.patch.object(self.L, 'settings', return_value=other), mock.patch.object(self.L, 'read', return_value=[]):
             self.assertEqual(self.L.page_data()['unfound'], [])
         import serve                                                    # a page built elsewhere hears from this computer
-        with mock.patch.object(self.L, 'settings', return_value=other), mock.patch.object(serve.paths, 'PARISH', self.d):
+        with mock.patch.object(self.L, 'settings', return_value=other), mock.patch.object(serve.paths, 'PARISH', self.d), \
+                mock.patch.object(self.L, 'read', return_value=[]):
             self.assertEqual(serve.get_ping({})['library'], {'folders': True, 'pdfs': {}, 'unfound': []})
 
     def test_adding_a_pdf(self):

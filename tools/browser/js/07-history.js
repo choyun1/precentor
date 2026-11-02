@@ -1,7 +1,9 @@
 // ---------- history tab ----------
-async function markSung(name) {
+async function markSung(name, btn) {
+  if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Marking and rebuilding the history…'; }
   const j = await post("/api/sung", {name, sung: true});
-  if (j.ok) location.reload(); else window.alert("Could not mark it: " + (j.error || ""));
+  if (j.ok) location.reload();
+  else { window.alert("Could not mark it: " + (j.error || "")); if (btn) { btn.disabled = false; btn.textContent = "Mark as sung"; } }
 }
 const HV = {mode: "psalms"};
 // every service on record (an imported record, then the Sunday files): what was sung, by date
@@ -67,7 +69,7 @@ function renderHistory() {
   $("#tab-history").innerHTML = (unc.length ? `<div class="card"><h3 style="font-weight:normal;margin:0 0 6px">Past Sundays not yet confirmed</h3>
     <p class="hint" style="margin:0 0 6px">A Sunday counts in the history once it's marked as sung${SERVER ? "" : " (add the line <code>sung: yes</code> to its file, or open the browser with the launcher for a button)"}.</p>
     <table class="hist">${unc.map(u => `<tr><td>${esc(u.date)}</td><td>${esc(u.psalms.join(", "))}</td><td>${esc(u.chants.map(chantText).join(", "))}</td>
-      <td>${SERVER ? `<button class="small primary" onclick="markSung('${esc(u.name)}')">Mark as sung</button>` : `<span class="hint">${esc(u.name)}.txt</span>`}</td></tr>`).join("")}</table></div>` : "") +
+      <td>${SERVER ? `<button class="small primary" onclick="markSung('${esc(u.name)}', this)">Mark as sung</button>` : `<span class="hint">${esc(u.name)}.txt</span>`}</td></tr>`).join("")}</table></div>` : "") +
     `<div class="seg" style="max-width:420px;margin-bottom:10px"><button class="${HV.mode !== "services" ? "on" : ""}" onclick="HV.mode='psalms'; renderHistory()">Psalms and chants</button><button class="${HV.mode === "services" ? "on" : ""}" onclick="HV.mode='services'; renderHistory()">Whole services</button></div>` +
     (HV.mode === "services" ? servicesRecord() :
     `<input type="search" id="hq" placeholder="Filter by date, psalm or chant" style="width:min(420px,100%)">
