@@ -269,6 +269,21 @@ def calendar(weeks=110):
 
 
 # ------------------------------------------------------------- main
+def page_signature():
+    """A fingerprint of the code the page is built from (the tools, the page, a parish's plugins), so the launcher
+    can tell when a page was built by other code than it now has (after a Sync brings in an update)."""
+    import hashlib
+    h = hashlib.sha1()
+    files = glob.glob(os.path.join(TOOLS, '*.py')) + glob.glob(os.path.join(PAGE, '**', '*'), recursive=True)
+    if paths.PARISH:
+        files += glob.glob(os.path.join(paths.PARISH, 'plugins', '*', 'plugin.*'))
+    for f in sorted(files):
+        if os.path.isfile(f):
+            h.update(os.path.relpath(f, ROOT).replace(os.sep, '/').encode())
+            h.update(open(f, 'rb').read().replace(b'\r\n', b'\n'))     # the same on Windows as elsewhere
+    return h.hexdigest()[:16]
+
+
 def service_data():
     """Orders of service, hymnals, past repertoire, the music library, anthem texts, and every service on record,
     for the planner."""
@@ -502,6 +517,7 @@ def main():
             'parish': {'name': lectionary.PARISH.get('name', ''), 'track': lectionary.PARISH.get('track', '2'),
                        'optional': build.optional_default()},
             'demo': bool(os.environ.get('PRECENTOR_DEMO')),      # the copy on GitHub Pages (.github/workflows/pages.yml)
+            'pageSignature': page_signature(),                  # the launcher rebuilds when the code changes
             }
     with open(os.path.join(SITE, 'data.js'), 'w', encoding='utf-8') as fh:
         fh.write('window.PRECENTOR = ' + json.dumps(data, ensure_ascii=False, separators=(',', ':')) + ';\n')

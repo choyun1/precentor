@@ -657,6 +657,21 @@ class Server(unittest.TestCase):
             with self.assertRaises(ValueError):
                 serve.safe_name(bad)
 
+    def test_a_page_built_by_other_code_is_rebuilt(self):
+        import browser, serve
+        d = tempfile.mkdtemp()
+        saved = paths.SITE
+        try:
+            paths.SITE = d
+            self.assertFalse(serve.page_out_of_date())                   # nothing built yet: built anyway
+            open(os.path.join(d, 'data.js'), 'w').write('window.PRECENTOR = {"pageSignature":"0000"};\n')
+            self.assertTrue(serve.page_out_of_date())
+            open(os.path.join(d, 'data.js'), 'w').write(f'window.PRECENTOR = {{"pageSignature":"{browser.page_signature()}"}};\n')
+            self.assertFalse(serve.page_out_of_date())
+        finally:
+            paths.SITE = saved
+            subprocess.run(['rm', '-rf', d])
+
 
 class ImportedRecord(unittest.TestCase):
     def test_every_acp_number_of_a_chant(self):
