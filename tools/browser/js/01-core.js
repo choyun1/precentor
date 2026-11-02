@@ -1,5 +1,5 @@
 "use strict";
-const D = window.PRECENTOR;
+const D = window.PRECENTOR || window.PSALTER;     // (a page built before the rename)
 // what this browser remembers (sort order, folded panes…) was kept as psalter-… before the rename: carry it over
 try { Object.keys(localStorage).filter(k => k.startsWith("psalter-")).forEach(k => {
   const n = "precentor-" + k.slice(8); if (localStorage.getItem(n) === null) localStorage.setItem(n, localStorage.getItem(k)); localStorage.removeItem(k);

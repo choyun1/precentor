@@ -120,7 +120,7 @@ def api_commit(data):
     try:
         with REBUILD:                                 # not while a rebuild is writing the pages
             ok, log = history.sync(msg.strip())
-        if ok and history.STALE.pop('site', None):    # pages built on both sides: build them afresh, and send those too
+        if ok and (history.STALE.pop('site', None) or page_out_of_date()):   # (or an update came in)    # pages built on both sides: build them afresh, and send those too
             P.update(total=P['total'] * 2 + 1)
             history.step('building the pages again with what came in')
             rebuild('after bringing in changes')
@@ -543,6 +543,13 @@ class Server(http.server.ThreadingHTTPServer):
         super().handle_error(request, client_address)
 
 
+def page_out_of_date():
+    """Whether the page was built by other code than this (a Sync brought in an update, say)."""
+    import browser
+    p = os.path.join(paths.SITE, 'data.js')
+    return os.path.exists(p) and f'"pageSignature":"{browser.page_signature()}"' not in paths.read(p)
+
+
 def main():
     history.ensure()
     if not os.path.exists(os.path.join(paths.SITE, 'data.js')):
@@ -554,6 +561,9 @@ def main():
     elif f'"linksSignature":"{lectionary.links_signature()}"' not in paths.read(os.path.join(paths.SITE, 'data.js')):
         print('updating the links to the lectionary…')        # the table changed since the page was built
         rebuild()
+    if page_out_of_date():
+        print('the code has changed since the page was built: building it again…')
+        rebuild('after an update')
     srv = SERVING['srv'] = Server(('127.0.0.1', PORT), Handler)
     url = f'http://localhost:{PORT}{SITE_URL}'
     print(f'Precentor with the Service planner: {url}\n(Ctrl+C to stop)')
