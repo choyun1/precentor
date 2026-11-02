@@ -712,6 +712,26 @@ class Server(unittest.TestCase):
         with mock.patch.dict(serve.SERVING, {}, clear=True):
             self.assertFalse(serve.code_changed())                       # not started by main(): nothing to compare
 
+    def test_a_restart_is_a_fresh_process_not_one_inside_the_old(self):
+        import serve
+        from unittest import mock
+        runs = []
+
+        class Child:
+            def __init__(self, args):
+                runs.append(args)
+            def wait(self):
+                return serve.RESTART if len(runs) == 1 else 0
+            terminate = lambda self: None
+
+        with mock.patch.object(serve.subprocess, 'Popen', Child), mock.patch.object(serve, 'install_packages') as pip, \
+                mock.patch.object(sys, 'argv', ['serve.py']), mock.patch('signal.signal'):
+            self.assertEqual(serve.supervise(), 0)
+        self.assertEqual(len(runs), 2)                                       # the first asked to start again; it did
+        self.assertNotIn('--no-open', runs[0])
+        self.assertIn('--no-open', runs[1])                                  # the page is open already
+        self.assertEqual(pip.call_count, 1)                                  # an update may need new packages
+
     def test_a_tool_can_print_a_check_mark_on_windows(self):
         import serve, tempfile
         from unittest import mock
@@ -860,6 +880,42 @@ class History(unittest.TestCase):
         self.assertEqual([d for d, _ in seen], list(range(1, len(seen) + 1)))       # one step at a time
         self.assertEqual(len(seen), history.PROGRESS['total'])                        # all of them
         self.assertIn('sending yours to GitHub', seen[-1][1])
+
+    def test_a_sync_sends_nothing_from_the_tools_folder_but_what_precentor_saved(self):
+        """The precentor folder (a public repository) beside a parish folder: Sync brings updates in, never commits
+        what lies about in it, and sends only commits Precentor made there."""
+        remote, core = tempfile.mkdtemp(), tempfile.mkdtemp()
+        try:
+            subprocess.run(['git', 'init', '-q', '--bare', remote], check=True)
+            subprocess.run(['git', 'clone', '-q', remote, core], check=True, capture_output=True)
+            for k, v in (('user.name', 'T'), ('user.email', 't@t')):
+                subprocess.run(['git', 'config', k, v], cwd=core, check=True)
+            open(os.path.join(core, 'tool.py'), 'w').write('x = 1\n')
+            subprocess.run(['git', 'add', '-A'], cwd=core, check=True)
+            subprocess.run(['git', 'commit', '-q', '-m', 'tools'], cwd=core, check=True)
+            subprocess.run(['git', 'push', '-q', '-u', 'origin', 'HEAD'], cwd=core, check=True, capture_output=True)
+            paths.CORE = core
+            open(os.path.join(core, 'scratch.txt'), 'w').write('private notes\n')     # left there by hand
+            self.assertEqual([r['files'] for r in history.pending() if r['repo'] == 'precentor'], [[]])
+            ok, log = history.sync('by hand')
+            self.assertTrue(ok, log)
+            pushed = lambda: subprocess.run(['git', 'ls-tree', '-r', '--name-only', 'HEAD'], cwd=remote,
+                                            capture_output=True, text=True).stdout.split()
+            self.assertEqual(pushed(), ['tool.py'])                              # the scratch file stayed here
+            chant = os.path.join(core, 'chant.ly')
+            open(chant, 'w').write('% a public-domain chant\n')
+            history.record([chant], 'New chant: X-1')                             # saved in Precentor: sent
+            self.assertEqual(history.sync('by hand')[0], True)
+            self.assertEqual(pushed(), ['chant.ly', 'tool.py'])
+            open(os.path.join(core, 'tool.py'), 'w').write('x = 2\n')
+            subprocess.run(['git', 'commit', '-q', '-am', 'my own edit'], cwd=core, check=True)   # by hand: kept here
+            ok, log = history.sync('by hand')
+            self.assertTrue(ok, log)
+            self.assertIn('kept here', log)
+            self.assertEqual(subprocess.run(['git', 'show', 'HEAD:tool.py'], cwd=remote, capture_output=True,
+                                            text=True).stdout, 'x = 1\n')
+        finally:
+            subprocess.run(['rm', '-rf', remote, core])
 
     def test_only_a_change_id_reaches_git(self):
         self.assertEqual(history.undo('parish', '--output=/tmp/x'), (False, 'no such change'))
