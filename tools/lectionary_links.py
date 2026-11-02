@@ -6,7 +6,7 @@
 
 The site gives each day's page a number (lectionary-post/89 is Proper 21, Year A), which can only be
 found on its month pages (lectionary.episcopalchurch.org/2026/9). This reads them, matches each Sunday
-and feast to the day this psalter's lectionary has for that date, and keeps the numbers in
+and feast to the day Precentor's lectionary has for that date, and keeps the numbers in
 reference/lectionary_links.csv, saving after each month (so stopping it keeps what it found). One
 three-year cycle is enough, since the same page serves the same day every third year. The site keeps
 no months before December 2025, so by default this reads from Advent last year to the end of the

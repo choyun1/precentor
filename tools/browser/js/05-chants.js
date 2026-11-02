@@ -223,7 +223,7 @@ const SORT_FIELDS = {
   range:    {label: "highest soprano note", dir: 1, val: topNote},
 };
 function sortLevels(name, fallback) {
-  try { const v = JSON.parse(localStorage.getItem("psalter-sort-" + name)); if (Array.isArray(v) && v.length && v.every(l => SORT_FIELDS[l.f])) return v; } catch (e) {}
+  try { const v = JSON.parse(localStorage.getItem("precentor-sort-" + name)); if (Array.isArray(v) && v.length && v.every(l => SORT_FIELDS[l.f])) return v; } catch (e) {}
   return fallback;
 }
 function sortCompare(levels, chantOf) {
@@ -252,7 +252,7 @@ function sortControl(view, picker) {
     ${levels.length < 5 ? `<span class="link hint" onclick="sortAdd('${view}')">+ then by</span>` : ""}</div>`;
 }
 function sortChanged(view) {
-  try { localStorage.setItem("psalter-sort-" + view, JSON.stringify(SORTS[view].levels)); } catch (e) {}
+  try { localStorage.setItem("precentor-sort-" + view, JSON.stringify(SORTS[view].levels)); } catch (e) {}
   SORTS[view].render();
 }
 function sortSet(view, i, f) { SORTS[view].levels[i] = {f, d: SORT_FIELDS[f].dir}; sortChanged(view); }

@@ -14,9 +14,9 @@ const { chromium } = createRequire(import.meta.url)("playwright");     // instal
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const PORT = 8700 + Math.floor(Math.random() * 90);
-const home = mkdtempSync(join(tmpdir(), "psalter-ui-"));
+const home = mkdtempSync(join(tmpdir(), "precentor-ui-"));
 const py = process.env.PYTHON || "python";
-const server = spawn(py, ["tools/serve.py"], {cwd: ROOT, env: {...process.env, PSALTER_PORT: String(PORT), BROWSER: "true", HOME: home}});
+const server = spawn(py, ["tools/serve.py"], {cwd: ROOT, env: {...process.env, PRECENTOR_PORT: String(PORT), BROWSER: "true", HOME: home}});
 let serverLog = ""; server.stdout.on("data", d => serverLog += d); server.stderr.on("data", d => serverLog += d);
 
 const errors = [], steps = [];

@@ -1,11 +1,15 @@
 """Small secrets (a plugin's password or web address) kept on this computer, never in a repository.
 
 In the computer's own password store (Windows Credential Manager, the macOS Keychain) when the `keyring`
-package is installed, otherwise in ~/.psalter/<name>.json, readable only by you.
+package is installed, otherwise in ~/.precentor/<name>.json, readable only by you.
+
+A secret kept under the old name (psalter-..., ~/.psalter/, from before the project was called Precentor) is
+moved to the new one the first time it is asked for.
 """
 import json, os
 
-DIR = os.path.join(os.path.expanduser('~'), '.psalter')
+DIR = os.path.join(os.path.expanduser('~'), '.precentor')
+OLD_DIR = os.path.join(os.path.expanduser('~'), '.psalter')
 
 
 def _keyring():
@@ -17,11 +21,21 @@ def _keyring():
         return None
 
 
-def _file(service):
-    return os.path.join(DIR, service.replace('psalter-', '') + '.json')
+def _file(service, folder=None):
+    return os.path.join(folder or DIR, service.replace('precentor-', '').replace('psalter-', '') + '.json')
 
 
 def get(service, key):
+    v = _get(service, key)
+    if v is None and service.startswith('precentor-'):          # kept under the old name: move it over
+        old = 'psalter-' + service[len('precentor-'):]
+        v = _get(old, key, OLD_DIR)
+        if v is not None:
+            put(service, key, v)
+    return v
+
+
+def _get(service, key, folder=None):
     kr = _keyring()
     if kr:
         try:
@@ -30,7 +44,7 @@ def get(service, key):
                 return v
         except Exception:
             pass
-    f = _file(service)
+    f = _file(service, folder)
     if os.path.exists(f):
         try:
             return json.load(open(f)).get(key)

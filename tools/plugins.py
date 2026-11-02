@@ -70,7 +70,7 @@ def modules():
                 sys.path.insert(0, f)
             name = os.path.basename(f)
             try:
-                spec = importlib.util.spec_from_file_location(f'psalter_plugin_{name}', p)
+                spec = importlib.util.spec_from_file_location(f'precentor_plugin_{name}', p)
                 mod = importlib.util.module_from_spec(spec)
                 spec.loader.exec_module(mod)
             except Exception as e:

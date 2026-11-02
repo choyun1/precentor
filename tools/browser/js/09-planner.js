@@ -2,8 +2,8 @@
 const SERVICES = [...new Set(Object.keys((D.service || {}).orders || {}).concat(["Eucharist", "Evensong", "Office", "Morning Prayer", "Evening Prayer"]))];
 const B = {music: {}, date: "", name: "", label: "", year: "", service: "Eucharist", gloria: "auto", reprint: true, sung: false,
            psalms: [{spec: "", chants: [{name: "", from: ""}]}], status: "", log: "", files: [], existing: null,
-           svc: {}, also: "", note: "", extra: {}, showOpt: new Set(), mode: (() => { try { return localStorage.getItem("psalter-mode") || "service"; } catch (e) { return "service"; } })()};
-function setMode(m) { B.mode = m; try { localStorage.setItem("psalter-mode", m); } catch (e) {} renderBuilder(); }
+           svc: {}, also: "", note: "", extra: {}, showOpt: new Set(), mode: (() => { try { return localStorage.getItem("precentor-mode") || "service"; } catch (e) { return "service"; } })()};
+function setMode(m) { B.mode = m; try { localStorage.setItem("precentor-mode", m); } catch (e) {} renderBuilder(); }
 function nextSunday() { const d = new Date(); d.setDate(d.getDate() + ((7 - d.getDay()) % 7 || 7)); return ymd(d); }
 function calEntry(date) { return D.calendar.find(c => c.date === date); }
 // a psalm tone's intonation: on verse 1 only, unless set to every verse
@@ -111,7 +111,7 @@ function specOf(id) {
 }
 function buildThisPsalm(id) {
   // the Psalm builder on its own: no date, no service, just this text and a chant
-  B.mode = "psalm"; try { localStorage.setItem("psalter-mode", "psalm"); } catch (e) {}
+  B.mode = "psalm"; try { localStorage.setItem("precentor-mode", "psalm"); } catch (e) {}
   B.started = true; B.date = ""; B.label = ""; B.year = ""; B.service = "Eucharist"; B.existing = null; B.files = []; B.status = ""; B.log = ""; B.pdf = "";
   B.name = id.toLowerCase().replace(/_/g, "-"); B.svc = {}; B.also = ""; B.note = ""; B.extra = {}; PLUGINS.reset.forEach(f => f()); B.sung = false; B.choir = true;
   B.psalms = [{spec: specOf(id), chants: [{name: "", from: ""}], daggers: null, open: true}]; B.music = {};

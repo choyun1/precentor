@@ -17,7 +17,7 @@ TIME_RE = re.compile(r'\\time\s+(?P<time>\d+/\d+)')
 CREDIT_RE = re.compile(r'(composer\s*=\s*\\markup\s*\{[^}]*?\\italic\s*)"(?P<credit>[^"]*)"')
 LABELS = {'S_notes': 'Soprano', 'A_notes': 'Alto', 'T_notes': 'Tenor', 'B_notes': 'Bass',
           'Unison_notes': 'Unison', 'descant_notes': 'Descant'}
-PREVIEWS = os.path.join(tempfile.gettempdir(), 'psalter-previews')     # pictures of chants being edited
+PREVIEWS = os.path.join(tempfile.gettempdir(), 'precentor-previews')     # pictures of chants being edited
 
 
 def _body_end(text, open_brace):

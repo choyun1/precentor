@@ -599,6 +599,23 @@ class Library(unittest.TestCase):
         self.assertEqual(len(os.listdir(os.path.join(self.d, 'backups'))), 1)          # not in git: a copy is kept
 
 
+
+class Keystore(unittest.TestCase):
+    def test_a_secret_under_the_old_name_is_moved(self):
+        import keystore
+        d = tempfile.mkdtemp()
+        saved = keystore.DIR, keystore.OLD_DIR, keystore._keyring
+        keystore.DIR, keystore.OLD_DIR, keystore._keyring = os.path.join(d, 'new'), os.path.join(d, 'old'), lambda: None
+        try:
+            os.makedirs(keystore.OLD_DIR)
+            open(os.path.join(keystore.OLD_DIR, 'gmail.json'), 'w').write('{"music@example.org": "app password"}')
+            self.assertEqual(keystore.get('precentor-gmail', 'music@example.org'), 'app password')
+            self.assertTrue(os.path.exists(os.path.join(keystore.DIR, 'gmail.json')))        # now kept under the new name
+            self.assertIsNone(keystore.get('precentor-gmail', 'someone@else.org'))
+        finally:
+            keystore.DIR, keystore.OLD_DIR, keystore._keyring = saved
+            subprocess.run(['rm', '-rf', d])
+
 class Setup(unittest.TestCase):
     def test_settings(self):
         import setup
