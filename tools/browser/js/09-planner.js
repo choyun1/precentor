@@ -186,7 +186,7 @@ function renderBuilder() {
         <button class="small primary" ${B.busy ? "disabled" : ""} onclick="buildSunday(false)">Save &amp; build PDF + images</button>
         <button class="small" ${B.busy ? "disabled" : ""} onclick="buildSunday(true)">PDF only</button>` : ""}
       </p>
-      ${SERVER ? "" : `<p class="hint">Saving writes parish/sundays/${esc(B.name)}.txt (Chrome/Edge) or downloads it. To check and build from here, open the browser with the Psalter launcher (or <code>python tools/serve.py</code>).</p>`}
+      ${SERVER ? "" : `<p class="hint">Saving writes parish/sundays/${esc(B.name)}.txt (Chrome/Edge) or downloads it. To check and build from here, open the browser with the Precentor launcher (or <code>python tools/serve.py</code>).</p>`}
       ${B.status ? `<p><b style="font-weight:normal">${esc(B.status)}</b></p>` : ""}
       ${B.log ? `<pre style="font: 13px/1.45 ui-monospace, Menlo, Consolas, monospace; white-space: pre-wrap; background: var(--bg); padding: 8px; border-radius: 6px">${esc(B.log)}</pre>` : ""}
       ${B.files.length ? `<p>${B.files.map(f => `<a href="/${encodeURI(f)}" target="_blank">${esc(f.split("/").pop())}</a>`).join(" · ")}</p>` : ""}

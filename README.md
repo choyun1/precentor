@@ -44,7 +44,7 @@ It was built for the weekly use of one parish, St. Peter's Episcopal Church in C
 ## Getting started
 
 1. Install Python 3.9 or later and [LilyPond](https://lilypond.org) (2.26 is what the spacing is tuned for; another version works, with a note). If `lilypond` isn't on the PATH, set the `LILYPOND` environment variable to it.
-2. Download this repository and double-click **Psalter.bat** (Windows) or run `psalter.sh` (Linux, macOS). It installs the Python packages it needs (`requirements.txt`) and opens the chant browser in your web browser. Everything stays on your computer; close the launcher's window to stop.
+2. Download this repository and double-click **Precentor.bat** (Windows) or run `precentor.sh` (Linux, macOS). It installs the Python packages it needs (`requirements.txt`) and opens the chant browser in your web browser. Everything stays on your computer; close the launcher's window to stop.
 3. The first time, the chant browser asks your parish's name, its lectionary track, its patronal feast and whether to sing the bracketed verses, and makes your parish folder, `parish/` (or run `python tools/setup.py`, or copy `parish.example/` to `parish/` by hand). It holds your Sunday files, pointing, ratings and history, and this repository ignores it; it's a git repository of its own, for Undo, and once you give it a private copy on GitHub, **Sync** keeps the two alike. Everything it asked can be changed later in `parish/parish.txt`, along with the liturgical colors, the Christmas psalms and any plugins.
 
 ## Gallery
@@ -69,7 +69,7 @@ It was built for the weekly use of one parish, St. Peter's Episcopal Church in C
 
 ## Planning a service
 
-Double-click **Psalter.bat** and open the **Service planner** tab.
+Double-click **Precentor.bat** and open the **Service planner** tab.
 
 1. **Pick the date.** The lectionary psalm is filled in (in the Season after Pentecost, the track set in `parish.txt` first); *The text* opens exactly the verses appointed.
 2. **Choose a chant.** **Choose…** opens the picker; click **Use**. The menu beside it transposes the chant for this Sunday (C minor, down 2): the PDF prints it in that key, and ▶ Play plays it there (`chant: Turle-2 down 2` in the Sunday file). Chants are shown as service sheets name them, *Turle in D minor*, with a number where one composer has two in a key; the file name (Turle-2) stays underneath. Add a change of chant partway, or another psalm, the same way. Verses the lectionary prints in brackets (`90:1-8,(9-11),12`) are left out unless you tick *sing the optional verses* (the default is `optional_verses:` in `parish.txt`). In *The text*, click a verse number to put the † on it or take it off, for this Sunday only, and ✎ beside a verse to point it differently for this service only (a `verse:` line in the Sunday file; the text keeps its own pointing, and the build checks the words still match the BCP); the planner says at once whether each double chant comes out even. Under the chant in the preview, *change the music for this service* opens the music editor for this service only, as with the pointing: leave a voice empty and it doesn't sing, or take one note out of a divided chord (`<a f>2` to `a2`). The Sunday file keeps the changed voices (`music:   A_notes silent`), the chant itself is unchanged, and *put the chant's own music back* undoes it.

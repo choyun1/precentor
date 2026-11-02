@@ -1,5 +1,5 @@
 __pycache__/
-# the launcher's Python packages (psalter.sh)
+# the launcher's Python packages (precentor.sh)
 .venv/
 *.pyc
 # your parish folder is your own (copy parish.example/ to parish/)
