@@ -1,4 +1,4 @@
-# The demo of the chant browser on GitHub Pages (https://choyun1.github.io/precentor/): built from this
+# The demo of Precentor on GitHub Pages (https://choyun1.github.io/precentor/): built from this
 # repository alone, with the template parish (parish.example/, the fictional St. Example's), so nothing private
 # is in it. It has no launcher, so it can't save; everything to look at works.
 name: pages
@@ -22,7 +22,7 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install -r requirements.txt lilypond
-      - name: Build the chant browser for St. Example's
+      - name: Build Precentor for St. Example's
         run: |
           cp -r parish.example parish
           PRECENTOR_DEMO=1 python tools/browser.py
@@ -31,7 +31,7 @@ jobs:
           mkdir -p _site/parish _site/style
           cp -r parish/site _site/parish/site
           cp -r style/fonts _site/style/fonts
-          printf '<!doctype html><meta charset="utf-8"><title>Precentor</title><meta http-equiv="refresh" content="0; url=parish/site/index.html"><a href="parish/site/index.html">The chant browser</a>\n' > _site/index.html
+          printf '<!doctype html><meta charset="utf-8"><title>Precentor</title><meta http-equiv="refresh" content="0; url=parish/site/index.html"><a href="parish/site/index.html">Precentor</a>\n' > _site/index.html
       - uses: actions/upload-pages-artifact@v3
         with:
           path: _site

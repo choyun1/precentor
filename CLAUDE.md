@@ -9,4 +9,4 @@
 - Never store a password, web-app address or secret (a plugin's either) in a repository; `tools/keystore.py` keeps them in the OS keyring or `~/.precentor/`.
 - Use American spelling everywhere (favorite, color, catalog; St. Peter's), as the Episcopal Church does.
 - After changing the tools, run `python -m unittest discover tests` (quick, no LilyPond); add a test there for any bug fixed.
-- The chant browser page is `tools/browser/` (page.html, style.css, js/ by tab); `tools/browser.py` puts it into one file.
+- The Precentor page is `tools/browser/` (page.html, style.css, js/ by tab); `tools/browser.py` puts it into one file.

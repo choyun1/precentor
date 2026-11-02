@@ -28,7 +28,7 @@ jobs:
         with:
           node-version: "20"
       - run: pip install -r requirements.txt lilypond
-      - name: Build the chant browser
+      - name: Build Precentor
         run: python tools/browser.py
       - run: npm install --no-save playwright@1.48.2 && npx playwright install --with-deps chromium
       - name: Walk through every tab

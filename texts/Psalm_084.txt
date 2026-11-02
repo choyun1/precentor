@@ -1,6 +1,6 @@
 Psalm 84 | Quam dilecta!
 % unpointed draft: the words of the 1979 BCP. Pointing for Anglican chant goes in your parish folder
-% (parish/texts/), or use the pointing editor in the chant browser; plainchant tones need none.
+% (parish/texts/), or use the pointing editor in Precentor; plainchant tones need none.
 
 1   How dear to me is your dwelling, O LORD of hosts! *
       My soul has a desire and longing for the courts of the LORD; my heart and my flesh rejoice in the living God.

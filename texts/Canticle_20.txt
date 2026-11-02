@@ -1,6 +1,6 @@
 Canticle 20 | Glory to God
 % unpointed draft: the words of the 1979 BCP. Pointing for Anglican chant goes in your parish folder
-% (parish/texts/), or use the pointing editor in the chant browser; plainchant tones need none.
+% (parish/texts/), or use the pointing editor in Precentor; plainchant tones need none.
 % Gloria in excelsis
 % the verse division and * are editorial: the BCP prints this canticle as prose
 % no Gloria Patri (the BCP prints none with this canticle)

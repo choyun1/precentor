@@ -9,7 +9,7 @@ tones. Everything belonging to one parish lives in its own folder, `parish/` ins
     parish/chants/             chants you may not publish (still under copyright), with catalog.csv
     parish/sundays/            one file per Sunday or service
     parish/output/             the PDFs and images built from them
-    parish/site/               the chant browser, built for this parish
+    parish/site/               Precentor, built for this parish
     parish/legacy/             anything from before (old files, history.csv)
 
 Without a parish folder the tools still work, using the precentor folder for those things.

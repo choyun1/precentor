@@ -1,6 +1,6 @@
 Psalm 111 | Confitebor tibi
 % unpointed draft: the words of the 1979 BCP. Pointing for Anglican chant goes in your parish folder
-% (parish/texts/), or use the pointing editor in the chant browser; plainchant tones need none.
+% (parish/texts/), or use the pointing editor in Precentor; plainchant tones need none.
 
 1   Hallelujah! I will give thanks to the LORD with my whole heart, *
       in the assembly of the upright, in the congregation.

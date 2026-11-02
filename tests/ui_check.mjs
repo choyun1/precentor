@@ -1,4 +1,4 @@
-// A walk through the chant browser in a real (headless) browser, looking for anything that breaks:
+// A walk through Precentor in a real (headless) browser, looking for anything that breaks:
 //
 //     python tools/browser.py && node tests/ui_check.mjs        (needs: npm install playwright; npx playwright install chromium)
 //
@@ -170,4 +170,4 @@ try {
 }
 console.log(steps.join("\n"));
 if (errors.length) { console.error("\n" + errors.join("\n")); process.exit(1); }
-console.log("\nThe chant browser works.");
+console.log("\nPrecentor works.");

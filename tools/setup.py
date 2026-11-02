@@ -1,10 +1,10 @@
 """Make your parish folder (parish/) the first time: from the template, parish.example/, with your settings.
 
     python tools/setup.py          # asks a few questions
-    (or: open the launcher; with no parish folder yet, the chant browser asks the same questions)
+    (or: open the launcher; with no parish folder yet, Precentor asks the same questions)
 
 It writes parish/parish.txt (name, lectionary track, patronal feast, bracketed verses) and makes the folder
-a git repository of its own, so the chant browser can undo changes and you can keep it on GitHub (privately)
+a git repository of its own, so Precentor can undo changes and you can keep it on GitHub (privately)
 with "Sync". Everything else in parish.txt (colors, Christmas psalms, plugins) can be changed later by hand.
 """
 import os, re, shutil, sys

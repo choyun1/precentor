@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run the chant browser with its Service planner switched on.
+"""Run Precentor with its Service planner switched on.
 
     python tools/serve.py           # opens http://localhost:8765 in your web browser; Ctrl+C to stop
 
@@ -34,15 +34,15 @@ def run(args, timeout=900):
 REBUILD = threading.Lock()
 
 
-def rebuild(what='the chant browser'):
-    """Rebuild the chant browser's pages, then record them (out of the History list)."""
+def rebuild(what='Precentor'):
+    """Rebuild Precentor's pages, then record them (out of the History list)."""
     with REBUILD:
         code, out = run(['browser.py'])
     history.record_generated(what)
     return code, out
 
 
-def rebuild_later(what='the chant browser'):
+def rebuild_later(what='Precentor'):
     threading.Thread(target=lambda: rebuild(what), daemon=True).start()
 
 
@@ -114,7 +114,7 @@ def api_sung(data):
 
 def api_commit(data):
     """Sync with GitHub: bring in what's new there, send what's new here."""
-    msg = (data.get('message') if isinstance(data.get('message'), str) else '') or 'Changes made outside the chant browser'
+    msg = (data.get('message') if isinstance(data.get('message'), str) else '') or 'Changes made outside Precentor'
     P = history.PROGRESS
     P.update(done=0, total=history.SYNC_STEPS * len(history.repos()), step='starting')
     try:
@@ -556,7 +556,7 @@ def main():
         rebuild()
     srv = SERVING['srv'] = Server(('127.0.0.1', PORT), Handler)
     url = f'http://localhost:{PORT}{SITE_URL}'
-    print(f'Chant browser with the Service planner: {url}\n(Ctrl+C to stop)')
+    print(f'Precentor with the Service planner: {url}\n(Ctrl+C to stop)')
     if '--no-open' not in sys.argv:                  # (not when starting again after the first-run setup)
         threading.Timer(0.6, lambda: webbrowser.open(url)).start()
     try:

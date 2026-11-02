@@ -1,6 +1,6 @@
 Psalm 63 | Deus, Deus meus
 % unpointed draft: the words of the 1979 BCP. Pointing for Anglican chant goes in your parish folder
-% (parish/texts/), or use the pointing editor in the chant browser; plainchant tones need none.
+% (parish/texts/), or use the pointing editor in Precentor; plainchant tones need none.
 
 1   O God, you are my God; eagerly I seek you; *
       my soul thirsts for you, my flesh faints for you, as in a barren and dry land where there is no water.

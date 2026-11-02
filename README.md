@@ -5,7 +5,7 @@
 
 Precentor sets the psalms of the 1979 Book of Common Prayer for a parish choir, typeset with LilyPond, either to Anglican chant or to the Gregorian psalm tones. Texts and chants are kept apart, so any text can be sung to any chant. One short text file per Sunday becomes the choir's copy (a PDF) and cropped images for the service leaflet. A planner that runs in your web browser opens on the psalm the lectionary appoints, helps choose a chant by mood, key and when it was last sung, and keeps the rest of the service (hymns, anthems, voluntaries, service music) as the parish's record of what was sung.
 
-It was built for the weekly use of one parish, St. Peter's Episcopal Church in Cambridge, Massachusetts, and is shared in case it helps others. To look around first, there's a [demo of the chant browser](https://choyun1.github.io/precentor/) for a made-up parish (it can't save). Anything particular to a parish lives in its own folder, apart from the tools, and a parish can add to the planner with plugins of its own.
+It was built for the weekly use of one parish, St. Peter's Episcopal Church in Cambridge, Massachusetts, and is shared in case it helps others. To look around first, there's a [demo of Precentor](https://choyun1.github.io/precentor/) for a made-up parish (it can't save). Anything particular to a parish lives in its own folder, apart from the tools, and a parish can add to the planner with plugins of its own.
 
 <!-- Contents: one entry per ## section, in order (tools/check_readme.py checks it). -->
 <table><tr><td>
@@ -22,7 +22,7 @@ It was built for the weekly use of one parish, St. Peter's Episcopal Church in C
 &emsp;3.1&ensp;[Orders of service](#orders-of-service)<br>
 &emsp;3.2&ensp;[Plainchant psalm tones](#plainchant-psalm-tones)<br>
 &emsp;3.3&ensp;[The text format](#the-text-format)<br>
-&emsp;3.4&ensp;[The chant browser](#the-chant-browser)<br>
+&emsp;3.4&ensp;[Precentor](#precentor)<br>
 &emsp;3.5&ensp;[Your parish folder](#your-parish-folder)<br>
 4&ensp;The project<br>
 &emsp;4.1&ensp;[Roadmap](#roadmap)<br>
@@ -44,8 +44,8 @@ It was built for the weekly use of one parish, St. Peter's Episcopal Church in C
 ## Getting started
 
 1. Install Python 3.9 or later and [LilyPond](https://lilypond.org) (2.26 is what the spacing is tuned for; another version works, with a note). If `lilypond` isn't on the PATH, set the `LILYPOND` environment variable to it.
-2. Download this repository and double-click **Precentor.bat** (Windows) or run `precentor.sh` (Linux, macOS). It installs the Python packages it needs (`requirements.txt`) and opens the chant browser in your web browser. Everything stays on your computer; close the launcher's window to stop.
-3. The first time, the chant browser asks your parish's name, its lectionary track, its patronal feast and whether to sing the bracketed verses, and makes your parish folder, `parish/` (or run `python tools/setup.py`, or copy `parish.example/` to `parish/` by hand). It holds your Sunday files, pointing, ratings and history, and this repository ignores it; it's a git repository of its own, for Undo, and once you give it a private copy on GitHub, **Sync** keeps the two alike. Everything it asked can be changed later in `parish/parish.txt`, along with the liturgical colors, the Christmas psalms and any plugins.
+2. Download this repository and double-click **Precentor.bat** (Windows) or run `precentor.sh` (Linux, macOS). It installs the Python packages it needs (`requirements.txt`) and opens Precentor in your web browser. Everything stays on your computer; close the launcher's window to stop.
+3. The first time, Precentor asks your parish's name, its lectionary track, its patronal feast and whether to sing the bracketed verses, and makes your parish folder, `parish/` (or run `python tools/setup.py`, or copy `parish.example/` to `parish/` by hand). It holds your Sunday files, pointing, ratings and history, and this repository ignores it; it's a git repository of its own, for Undo, and once you give it a private copy on GitHub, **Sync** keeps the two alike. Everything it asked can be changed later in `parish/parish.txt`, along with the liturgical colors, the Christmas psalms and any plugins.
 
 ## Gallery
 
@@ -174,7 +174,7 @@ Psalm 19 | Caeli enarrant
 
 LORD, GOD and YAHWEH are set in small capitals automatically, and straight quotes become curly ones. `python tools/check_texts.py` reports any word that differs from the 1979 BCP and any verse without exactly one `*`. Every typographic choice (typeface, bar height, brackets, indents, verse spacing) is a named setting at the top of `style/psalm-style.ily`.
 
-## The chant browser
+## Precentor
 
 - **Coming up**: the next Sundays and feasts, one line each; click one for its psalms, moods and chant ideas.
 - **Service planner**: [above](#planning-a-service).
@@ -200,11 +200,11 @@ LORD, GOD and YAHWEH are set in small capitals automatically, and straight quote
 | `library/` | The music library (optional): `catalog.csv`, one row per piece (a PDF, octavos or a book; its season, where the copies are), and `library.txt`, how you keep your music. Start it from what's been sung, add pieces from an anthem box, or point it at a folder of PDFs (`python tools/library.py`). |
 | `schedule/schedule.csv` | Past services brought in from elsewhere (date, occasion, organist, slot, item), read with the Sunday files. |
 | `plugins/` | Your own additions to the planner (below). |
-| `output/`, `site/` | What the build makes, and the chant browser built for your parish. |
+| `output/`, `site/` | What the build makes, and Precentor built for your parish. |
 
 **Plugins.** A parish's own ways of doing things (a weekly email to the office, a music schedule spreadsheet, a volunteer schedule) belong in its folder, not here. A plugin is a folder in `parish/plugins/` with up to three files: `plugin.txt` (lines it adds to Sunday files and orders of service), `plugin.py` (requests it answers for the planner) and `plugin.js` (a card or rows it adds to the planner). `tools/plugins.py` describes them. St. Peter's has two: its weekly email to the parish office, drafted in Gmail with the psalm images attached, and its music schedule, a Google Sheet each service is written into.
 
-In this folder: `texts/` and `chants/` (with `catalog.csv`), `moods.txt`, `services.txt`, `examples/`, `style/` (the LilyPond settings and EB Garamond), `reference/` (the 1979 psalter, the lectionary's psalm table, the psalm tones), `tools/` (the chant browser's page is in `tools/browser/`), `tests/` (`python -m unittest discover tests`, which with music21 installed also checks the MusicXML import against every chant and Bach's chorales; `node tests/ui_check.mjs` walks through the chant browser in a headless browser, as GitHub does on every push) and `parish.example/`. To add a chant, use **+ New chant** on the Chants tab (with the launcher): its composer and source, then the music, voice by voice, with a picture that redraws as you type and Play; it goes in `chants/` with a row in `chants/catalog.csv`, or in `parish/chants/` if it's still under copyright. A chant already typeset in MuseScore, Finale, Sibelius or Dorico can start from its MusicXML export (*Start from a score*): the four voices (as four parts, two staves of two voices, two staves of chords, or a mixture; parts named Soprano, Alto, Tenor and Bass are found by name, and an organ part is left out), the key, the time and the composer come in, with a warning for anything to check, ready for the editor (`python tools/musicxml.py score.musicxml` prints the chant file it makes). **Edit details** and **Edit music…** on a chant's card correct it for good, the same way (the editor checks that the voices agree phrase by phrase and that every bar adds up); to change a chant for one service only, use the planner (above). By hand, copy a chant file in the layout of the others and add its catalog row. A chant that turns out to be a copy of another, in another key, can go in `chants/aliases.csv` instead: its old name then means the other chant, transposed, wherever it's used.
+In this folder: `texts/` and `chants/` (with `catalog.csv`), `moods.txt`, `services.txt`, `examples/`, `style/` (the LilyPond settings and EB Garamond), `reference/` (the 1979 psalter, the lectionary's psalm table, the psalm tones), `tools/` (Precentor's page is in `tools/browser/`), `tests/` (`python -m unittest discover tests`, which with music21 installed also checks the MusicXML import against every chant and Bach's chorales; `node tests/ui_check.mjs` walks through Precentor in a headless browser, as GitHub does on every push) and `parish.example/`. To add a chant, use **+ New chant** on the Chants tab (with the launcher): its composer and source, then the music, voice by voice, with a picture that redraws as you type and Play; it goes in `chants/` with a row in `chants/catalog.csv`, or in `parish/chants/` if it's still under copyright. A chant already typeset in MuseScore, Finale, Sibelius or Dorico can start from its MusicXML export (*Start from a score*): the four voices (as four parts, two staves of two voices, two staves of chords, or a mixture; parts named Soprano, Alto, Tenor and Bass are found by name, and an organ part is left out), the key, the time and the composer come in, with a warning for anything to check, ready for the editor (`python tools/musicxml.py score.musicxml` prints the chant file it makes). **Edit details** and **Edit music…** on a chant's card correct it for good, the same way (the editor checks that the voices agree phrase by phrase and that every bar adds up); to change a chant for one service only, use the planner (above). By hand, copy a chant file in the layout of the others and add its catalog row. A chant that turns out to be a copy of another, in another key, can go in `chants/aliases.csv` instead: its old name then means the other chant, transposed, wherever it's used.
 
 ## Roadmap
 

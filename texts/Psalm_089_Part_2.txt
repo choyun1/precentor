@@ -1,6 +1,6 @@
 Psalm 89: Part 2 | Tunc locutus es
 % unpointed draft: the words of the 1979 BCP. Pointing for Anglican chant goes in your parish folder
-% (parish/texts/), or use the pointing editor in the chant browser; plainchant tones need none.
+% (parish/texts/), or use the pointing editor in Precentor; plainchant tones need none.
 
 19  You spoke once in a vision and said to your faithful people: *
       "I have set the crown upon a warrior and have exalted one chosen out of the people.

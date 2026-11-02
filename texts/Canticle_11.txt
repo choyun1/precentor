@@ -1,6 +1,6 @@
 Canticle 11 | The Third Song of Isaiah (Isaiah 60:1-3, 11a, 14c, 18-19)
 % unpointed draft: the words of the 1979 BCP. Pointing for Anglican chant goes in your parish folder
-% (parish/texts/), or use the pointing editor in the chant browser; plainchant tones need none.
+% (parish/texts/), or use the pointing editor in Precentor; plainchant tones need none.
 % Surge, illuminare
 
 1   Arise, shine, for your light has come, *

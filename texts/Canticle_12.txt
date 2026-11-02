@@ -1,6 +1,6 @@
 Canticle 12 | A Song of Creation (Song of the Three Young Men, 35-65)
 % unpointed draft: the words of the 1979 BCP. Pointing for Anglican chant goes in your parish folder
-% (parish/texts/), or use the pointing editor in the chant browser; plainchant tones need none.
+% (parish/texts/), or use the pointing editor in Precentor; plainchant tones need none.
 % Benedicite, omnia opera Domini
 % no Gloria Patri (the BCP prints none with this canticle)
 

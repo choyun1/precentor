@@ -1,6 +1,6 @@
 """A change history for what the launcher saves, so any change can be undone with one click.
 
-Every save the chant browser makes (a Sunday, chant notes, a verse's pointing, an anthem's words, marking a
+Every save Precentor makes (a Sunday, chant notes, a verse's pointing, an anthem's words, marking a
 service as sung) is recorded at once as a git commit on this computer, with a one-line description. The
 browser's Undo button reverts the latest one, and History lists the recent ones, each with its own Undo
 (a revert: a new commit that puts things back, so nothing is ever lost). "Sync with GitHub" then only has
@@ -16,7 +16,8 @@ sys.path.insert(0, TOOLS)
 import paths   # noqa: E402
 
 GENERATED = 'Generated: '                  # commits of rebuilt pages and built PDFs, left out of History
-MARK = 'Recorded by the chant browser.'   # in the body of each change History lists (and only those)
+MARK = 'Recorded by Precentor.'   # in the body of each change History lists (and only those)
+MARKS = (MARK, 'Recorded by the chant browser.')   # and as it read before the rename
 GENERATED_DIRS = ('site/', 'output/')      # rebuilt from the rest, so a clash in them doesn't matter
 STALE = {}                                 # 'site': True when a sync took GitHub's copy of the generated pages
 LOCK = threading.RLock()                   # one git command at a time (rebuilds run in the background)
@@ -120,7 +121,7 @@ def changes(limit=25):
     for d, name in repos():
         code, unpushed = git(d, 'rev-list', '@{u}..HEAD')
         ahead = set(unpushed.split()) if code == 0 else set()
-        code, log = git(d, 'log', f'-{limit}', '--no-merges', '--fixed-strings', '--grep', MARK,
+        code, log = git(d, 'log', f'-{limit}', '--no-merges', '--fixed-strings', *[x for m in MARKS for x in ('--grep', m)],
                         '--format=%H%x09%ct%x09%s')
         for line in log.splitlines() if code == 0 else []:
             sha, t, msg = line.split('\t', 2)
@@ -142,8 +143,8 @@ def undo(repo, sha):
     if not re.fullmatch(r'[0-9a-f]{7,40}', str(sha)):          # a change's id, and nothing else, reaches git
         return False, 'no such change'
     code, body = git(d, 'log', '-1', '--format=%B', sha, '--')
-    if code != 0 or MARK not in body:
-        return False, 'only changes made in the chant browser can be undone here'
+    if code != 0 or not any(m in body for m in MARKS):
+        return False, 'only changes made in Precentor can be undone here'
     msg = body.strip().splitlines()[0]
     files = names(git(d, 'diff-tree', '--no-commit-id', '--name-only', '-r', '-z', '--root', sha)[1])
     with LOCK:

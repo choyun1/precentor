@@ -1,6 +1,6 @@
 Psalm 35 | Judica, Domine
 % unpointed draft: the words of the 1979 BCP. Pointing for Anglican chant goes in your parish folder
-% (parish/texts/), or use the pointing editor in the chant browser; plainchant tones need none.
+% (parish/texts/), or use the pointing editor in Precentor; plainchant tones need none.
 
 1   Fight those who fight me, O LORD; *
       attack those who are attacking me.

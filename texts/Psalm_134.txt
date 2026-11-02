@@ -1,6 +1,6 @@
 Psalm 134 | Ecce nunc
 % unpointed draft: the words of the 1979 BCP. Pointing for Anglican chant goes in your parish folder
-% (parish/texts/), or use the pointing editor in the chant browser; plainchant tones need none.
+% (parish/texts/), or use the pointing editor in Precentor; plainchant tones need none.
 
 1   Behold now, bless the LORD, all you servants of the LORD, *
       you that stand by night in the house of the LORD.

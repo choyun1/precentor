@@ -1,6 +1,6 @@
 Psalm 14 | Dixit insipiens
 % unpointed draft: the words of the 1979 BCP. Pointing for Anglican chant goes in your parish folder
-% (parish/texts/), or use the pointing editor in the chant browser; plainchant tones need none.
+% (parish/texts/), or use the pointing editor in Precentor; plainchant tones need none.
 
 1   The fool has said in his heart, "There is no God." *
       All are corrupt and commit abominable acts; there is none who does any good.
