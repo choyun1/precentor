@@ -16,7 +16,8 @@ header { position: sticky; top: 0; z-index: 5; background: var(--bg); border-bot
   display: flex; align-items: baseline; gap: 24px; padding: 12px 24px; flex-wrap: wrap; }
 header h1 { margin: 0; font-size: 26px; font-weight: normal; letter-spacing: .02em; }
 header h1 .logo { width: 30px; height: 30px; vertical-align: -6px; margin-right: 9px; }
-.logo .ink { stroke: var(--ink); } .logo .ac { stroke: var(--accent); } .logo text { fill: var(--accent); }
+.logo rect { fill: var(--accent); } .logo .l { stroke: var(--panel); } .logo .p { stroke: var(--panel); opacity: .65; }
+header h1 a.home { color: inherit; text-decoration: none; } header h1 a.home:hover .logo rect { opacity: .85; }
 nav button { background: none; border: none; font: inherit; color: var(--muted); padding: 4px 2px; margin-right: 14px; cursor: pointer;
   border-bottom: 2px solid transparent; }
 nav button.on { color: var(--ink); border-color: var(--accent); }
@@ -100,7 +101,7 @@ a, .link { color: var(--accent); cursor: pointer; text-decoration: none; }
 #changes td { padding: 3px 10px 3px 0; vertical-align: top; }
 #gitbar button { margin-left: 6px; }
 .icon { width: 1.15em; height: 1.15em; vertical-align: -0.22em; }
-button.sync .icon { margin-right: 2px; }
+button.sync .icon { width: 1.5em; height: 1.5em; vertical-align: -0.38em; margin: -4px 3px -4px -2px; }
 button.sync.busy .arrows { animation: spin 1.2s linear infinite; transform-box: view-box; transform-origin: 12px 13px; }
 @keyframes spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { button.sync.busy .arrows { animation-duration: 4s; } }
@@ -217,6 +218,8 @@ button:disabled { opacity: .55; cursor: wait; }
 .libtable .nowrap { white-space: nowrap; }
 .libtable th.sortable { cursor: pointer; user-select: none; white-space: nowrap; }
 .libtable th.sortable:hover, .libtable th.sortable.on { color: var(--ink); }
+.forlabel { font-size: 13px; padding: 0 6px; border-radius: 8px; border: 1px solid var(--line); color: var(--muted); }
+.forlabel.organ { border-color: var(--accent); color: var(--accent); }
 @media (max-width: 640px) { .libtable .libwhere { display: none; } }
 
 /* a small turning circle: something is being done */

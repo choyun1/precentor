@@ -592,7 +592,10 @@ def main():
         print('starting again…')
         again = [sys.executable, os.path.abspath(__file__), '--no-open']
         if os.name == 'nt':                          # (Windows has no exec: run it and wait, in this window)
-            sys.exit(subprocess.call(again))
+            try:
+                sys.exit(subprocess.call(again))
+            except KeyboardInterrupt:                # Ctrl+C stops the new one (it says so); this one just goes
+                sys.exit(0)
         os.execv(sys.executable, again)
 
 

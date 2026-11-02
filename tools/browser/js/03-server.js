@@ -49,7 +49,7 @@ async function undoChange(i) {
 const SYNC_WHY = "Everything you save here is kept on this computer at once, and Undo works without GitHub. Syncing adds:\n" +
   "• a backup of your parish folder in your own GitHub account, safe if this computer is lost;\n" +
   "• your other computers: their changes come here, and yours go there (sync before you switch);\n" +
-  "• updates to the tools (Precentor starts again by itself to use them).";
+  "• updates to Precentor itself (it starts again on its own).";
 function syncPop(html, keep) {
   let pop = $("#syncpop");
   if (!pop) { pop = Object.assign(document.createElement("div"), {id: "syncpop", className: "pop"}); document.body.appendChild(pop); }
@@ -57,11 +57,13 @@ function syncPop(html, keep) {
   pop.style.top = (r.bottom + 6) + "px";
   pop.style.right = Math.max(8, innerWidth - r.right) + "px";
   pop.innerHTML = html; pop.hidden = false;
+  if (pop.getBoundingClientRect().left < 8) pop.style.right = Math.max(8, innerWidth - pop.offsetWidth - 8) + "px";   // (a narrow window)
   clearTimeout(syncPop.t);
   if (!keep) syncPop.t = setTimeout(() => { pop.hidden = true; }, 5000);
 }
 function closeSyncPop() { const p = $("#syncpop"); if (p) p.hidden = true; }
-document.addEventListener("click", e => { if (!e.target.closest("#syncpop, button.sync")) closeSyncPop(); });
+// a click outside closes it; not the click on its own Sync button, which replaced what was clicked with the progress
+document.addEventListener("click", e => { if (e.target.isConnected && !e.target.closest("#syncpop, button.sync")) closeSyncPop(); });
 document.addEventListener("keydown", e => { if (e.key === "Escape") closeSyncPop(); });
 function showSync() {
   const waiting = CHANGES.filter(c => !c.pushed);
