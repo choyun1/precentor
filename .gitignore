@@ -8,6 +8,7 @@ parish/
 /site/
 /output/
 /sundays/
+/library/
 **/.img_*/
 # the browser check's Playwright (npm)
 node_modules/

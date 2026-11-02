@@ -165,6 +165,71 @@ def api_open(data):
     return {'ok': True}
 
 
+# ------------------------------------------------------------------ the music library (tools/library.py)
+def _save_library(rows, message):
+    import library
+    f = library.write(rows)
+    if library.in_git(f):                  # elsewhere (beside the scores) a dated copy is kept instead
+        history.record([f], message)
+    rebuild_later('the music library')
+    return f
+
+
+def api_library_add(data):
+    """Add a piece to the library, or fill in the one there; with a PDF (base64), put it in the score folder."""
+    import base64, library
+    row = data.get('row') if isinstance(data.get('row'), dict) else {}
+    rows, r, new = library.add(row)
+    if data.get('pdf'):
+        if r['File']:
+            raise ValueError(f"{library.piece(r)} already has a PDF: {r['File']}")
+        r['File'], r['Format'] = library.place_pdf(r, base64.b64decode(text_arg(data, 'pdf'))), r['Format'] or 'PDF'
+    _save_library(rows, ('Library: added ' if new else 'Library: ') + library.piece(r))
+    return {'ok': True, 'row': r, 'new': new}
+
+
+def api_library_from_record(data):
+    """Start (or add to) the library from every anthem already sung."""
+    import library
+    rows, n = library.from_record()
+    if n:
+        _save_library(rows, f'Library: {n} pieces from the record')
+    return {'ok': True, 'added': n, 'rows': rows}
+
+
+def api_library_scan(data):
+    """PDFs in the score folders not yet in the library (and files that moved or went missing)."""
+    import library
+    return {'ok': True, **library.scan()}
+
+
+def api_library_keep(data):
+    """Keep what a scan found: new rows (as checked on the page) and the files that moved."""
+    import library
+    rows = library.read()
+    library.apply_moves(rows, [m for m in data.get('moved') or [] if isinstance(m, list) and len(m) == 2])
+    n = 0
+    for row in data.get('rows') or []:
+        if isinstance(row, dict):
+            rows, _, new = library.add(row, rows)
+            n += new
+    _save_library(rows, f'Library: {n} new PDFs from the score folders')
+    return {'ok': True, 'added': n, 'rows': rows}
+
+
+def api_score(data):
+    """Open a piece's PDF on this computer."""
+    import library
+    p = library.score_path(text_arg(data, 'file'))
+    if not p:
+        raise ValueError('that PDF is not in a score folder on this computer')
+    if sys.platform.startswith('win'):
+        os.startfile(p)
+    else:
+        subprocess.Popen(['open' if sys.platform == 'darwin' else 'xdg-open', p])
+    return {'ok': True}
+
+
 def api_text(data):
     """One verse's pointing: checked (check: true, for this Sunday's own pointing, nothing saved), or saved into the
     text, after checking it keeps one * and the BCP's words. The text as it was before its first change is kept
@@ -331,7 +396,9 @@ def get_chant_img(q):
 ROUTES = {'/api/chant/open': api_chant_open, '/api/chant/preview': api_chant_preview, '/api/chant/save': api_chant_save,
           '/api/chant/details': api_chant_details, '/api/chant/import': api_chant_import,
           '/api/notes': api_notes, '/api/sunday': api_sunday, '/api/sung': api_sung, '/api/commit': api_commit,
-          '/api/undo': api_undo, '/api/anthem': api_anthem, '/api/open': api_open, '/api/text': api_text,
+          '/api/undo': api_undo, '/api/anthem': api_anthem, '/api/open': api_open, '/api/score': api_score,
+          '/api/library/add': api_library_add, '/api/library/from-record': api_library_from_record,
+          '/api/library/scan': api_library_scan, '/api/library/keep': api_library_keep, '/api/text': api_text,
           '/api/check': api_check, '/api/build': api_build}
 
 

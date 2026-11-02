@@ -128,7 +128,7 @@ code { font-size: 14px; background: var(--panel); border: 1px solid var(--line);
 .sc { font-variant: small-caps; }
 .pv-music { margin: 12px 0 4px; }
 .svrow { display: grid; grid-template-columns: 9.5em 1fr; gap: 4px 10px; align-items: start; margin: 5px 0; }
-.svrow > label { padding-top: 5px; color: var(--muted, #666); }
+.svrow > label { padding-top: 5px; color: var(--muted); }
 .svhint { font-size: 14px; margin: 2px 0 0; min-height: 0; }
 .warn { color: #a33; }
 a.small { font-size: 14px; margin-left: 6px; }
@@ -201,3 +201,12 @@ button:disabled { opacity: .55; cursor: wait; }
 /* the sync progress bar */
 .pop .bar { height: 6px; background: var(--line); border-radius: 3px; overflow: hidden; margin-top: 6px; width: 240px; }
 .pop .bar span { display: block; height: 100%; background: var(--accent); border-radius: 3px; transition: width .25s ease; }
+/* the music library (10a-library.js) */
+.libform { display: flex; flex-wrap: wrap; gap: 6px 14px; margin: 6px 0 8px; }
+.libform label { display: flex; flex-direction: column; font-size: 13px; color: var(--muted); }
+.libform input[type=text] { width: 14em; max-width: 100%; }
+.libtable { border-collapse: collapse; width: 100%; font-size: 14px; }
+.libtable th { text-align: left; font-weight: normal; color: var(--muted); border-bottom: 1px solid var(--line); padding: 2px 6px; }
+.libtable td { padding: 3px 6px; vertical-align: top; border-bottom: 1px solid var(--line); }
+.libtable td input[type=text] { width: 100%; min-width: 8em; }
+@media (max-width: 640px) { .libtable th:nth-child(3), .libtable td:nth-child(3) { display: none; } }

@@ -107,7 +107,7 @@ function slotHint(s, value) {
   }
   const r = (REP[family(s)] || []).find(x => x[0] === v);
   const before = r ? r[1].filter(d => d < B.date) : [];
-  return `<span class="hint">${before.length ? `done ${before.length}× before · last ${esc(before[before.length - 1])}` : "not done here before"}</span>`;
+  return `<span class="hint">${before.length ? `done ${before.length}× before · last ${esc(before[before.length - 1])}` : "not done here before"}</span>${s.kind === "anthem" ? libHint(v) : ""}`;
 }
 function anthemBox(k) {
   const v = (B.svc[k] || "").trim();
@@ -116,7 +116,7 @@ function anthemBox(k) {
   return `<details ${a ? "" : "open"} style="margin:4px 0 8px"><summary class="hint">${a ? "Words" + (a.source ? " (" + esc(a.source) + ")" : "") + ": on file" : "No words on file for this piece yet: paste them here (or leave empty)"}</summary>
     <input type="text" id="asrc-${id}" value="${esc(a ? a.source : "")}" placeholder="Where the words come from (optional), e.g. John 3:16" style="width:100%;margin:6px 0">
     <textarea id="atxt-${id}" style="width:100%;height:${a ? Math.min(24, a.text.split("\n").length + 1) * 1.45 : 8}em;font-family:inherit;font-size:15px;line-height:1.45">${esc(a ? a.text : "")}</textarea>
-    ${SERVER ? `<button class="small" onclick="saveAnthem('${k}')">Save the words</button> <span class="hint">kept in parish/anthems/, used whenever ${esc(t)} comes round again</span>` : ""}</details>`;
+    ${SERVER ? `<button class="small" onclick="saveAnthem('${k}')">Save the words</button> <span class="hint">kept in parish/anthems/, used whenever ${esc(t)} comes round again</span>` : ""}</details>${libAddBox(id, v)}`;
 }
 async function saveAnthem(k) {
   const id = sid(k), [title, composer] = splitPiece(B.svc[k]);
@@ -196,7 +196,7 @@ function seqAnthemBox(i) {
   return `<details style="margin:4px 0 8px"><summary class="hint">${a ? "Words" + (a.source ? " (" + esc(a.source) + ")" : "") + ": on file" : "No words on file yet: paste them here"}</summary>
     <input type="text" id="asrc-${id}" value="${esc(a ? a.source : "")}" placeholder="Where the words come from (optional)" style="width:100%;margin:6px 0">
     <textarea id="atxt-${id}" style="width:100%;height:${a ? Math.min(24, a.text.split("\n").length + 1) * 1.45 : 8}em;font-family:inherit;font-size:15px;line-height:1.45">${esc(a ? a.text : "")}</textarea>
-    ${SERVER ? `<button class="small" onclick="saveSeqAnthem(${i})">Save the words</button>` : ""}</details>`;
+    ${SERVER ? `<button class="small" onclick="saveSeqAnthem(${i})">Save the words</button>` : ""}</details>${libAddBox(id, v)}`;
 }
 async function saveSeqAnthem(i) {
   const [title, composer] = splitPiece(B.seq[i][1]), id = "seq" + i;
@@ -233,7 +233,10 @@ function serviceCard() {
     ${PLUGINS.rows.map(f => f()).join("")}
   </div>`;
 }
-function repLists() { return Object.entries(REP).map(([f, list]) => `<datalist id="rep-${sid(f)}">${list.map(r => `<option value="${esc(r[0])}">${r[1].length}× · last ${esc(r[1][r[1].length - 1])}</option>`).join("")}</datalist>`).join(""); }
+function repLists() {
+  const fams = [...new Set(Object.keys(REP).concat("anthem"))];       // anthems: the library first (10a-library.js)
+  return fams.map(f => `<datalist id="rep-${sid(f)}">${f === "anthem" ? anthemOptions() : REP[f].map(r => `<option value="${esc(r[0])}">${r[1].length}× · last ${esc(r[1][r[1].length - 1])}</option>`).join("")}</datalist>`).join("");
+}
 function setSvc(k, v) {
   B.svc[k] = v.trim(); refreshSlot(k);
   // the Nunc dimittis usually follows the Magnificat's setting
