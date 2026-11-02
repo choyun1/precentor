@@ -1,0 +1,11 @@
+# The music library (tools/library.py): how this parish keeps its music. Every line is optional.
+# The catalog is catalog.csv beside this file, one row per piece; the planner adds to it.
+# Where the PDFs are on one computer goes in ~/.psalter/library.txt (it differs from computer to computer):
+#   score folders:   D:/Music/Anthems
+# How a PDF's name reads, so a new one becomes a row ({composer} {title} {catalog}; _ for spaces):
+# names:           {composer}-{title}
+# Where a PDF added in the planner goes, inside the first score folder:
+# file new pdfs:   {season}/{composer}-{title}.pdf
+# Folders whose music belongs to a season (any = for any time), and folders that aren't anthems:
+# folder seasons:  Advent = advent, Christmas = christmas, Lent = lent, Easter = easter, General = any
+# skip folders:    Hymns

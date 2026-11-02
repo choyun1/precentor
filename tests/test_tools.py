@@ -514,6 +514,89 @@ class Service(unittest.TestCase):
         self.assertEqual(service.find_anthem('Ave verum corpus - W. A. Mozart', lib)['file'], 'ave-mozart')
 
 
+
+class Library(unittest.TestCase):
+    """The music library (tools/library.py): no particular folders, no catalog needed."""
+    def setUp(self):
+        import library
+        self.L, self.d = library, tempfile.mkdtemp()
+        self.rows = lambda *r: [{c: '' for c in library.COLUMNS} | x for x in r]
+
+    def tearDown(self):
+        subprocess.run(['rm', '-rf', self.d])
+
+    def test_names_of_pdfs(self):
+        p = self.L.parse_name
+        self.assertEqual(p('Fauré-Op_048-Requiem.pdf'), {'Composer': 'Fauré', 'Title': 'Requiem', 'Catalog no.': 'Op. 48'})
+        self.assertEqual(p('Monteverdi-SV_259-Beatus_vir.pdf')['Catalog no.'], 'SV 259')
+        self.assertEqual(p('a scan.pdf'), {'Composer': '', 'Title': 'a scan', 'Catalog no.': ''})   # no pattern: title only
+        self.assertEqual(p('Requiem (Faure).pdf', '{title} ({composer})')['Composer'], 'Faure')
+
+    def test_same_title_other_composer(self):
+        rows = self.rows({'Title': 'Ave verum corpus', 'Composer': 'William Byrd'})
+        self.assertIsNone(self.L.find(rows, 'Ave verum corpus - W. A. Mozart (1756-1791)'))
+        self.assertIs(self.L.find(rows, 'Ave verum corpus - Byrd'), rows[0])
+        rows, r, new = self.L.add({'Title': 'Ave verum corpus', 'Composer': 'Byrd', 'Copies': '24'}, rows)
+        self.assertFalse(new)
+        self.assertEqual((len(rows), r['Copies'], r['Composer']), (1, '24', 'William Byrd'))   # filled in, not doubled
+        for bad in ({'Title': ''}, {'Title': 'X', 'Season': 'summer'}, {'Title': 'X', 'Format': 'Vinyl'}):
+            with self.assertRaises(ValueError):
+                self.L.add(bad, rows)
+
+    def test_from_what_was_sung(self):
+        rep = {'anthem': [['Hodie - Sweelinck', ['2024-12-24', '2025-12-25']],
+                          ['O taste and see - Ralph Vaughan Williams (1872-1958)', ['2025-03-02', '2025-07-13', '2025-10-05']],
+                          ['390', ['2025-01-05']]]}
+        rows, n = self.L.from_record([], rep)
+        self.assertEqual(n, 2)                                            # a hymn number isn't a piece
+        self.assertEqual(rows[0]['Season'], 'christmas')
+        self.assertEqual((rows[1]['Season'], rows[1]['Years']), ('', '1872-1958'))   # all year round: any time
+        self.assertEqual(self.L.from_record(rows, rep)[1], 0)
+
+    def test_any_folders(self):
+        for f in ('Lent/Farrant-Hide_not_thou_thy_face.pdf', 'Byrd-Vigilate.pdf', 'Hymns/x.pdf', 'General/Tallis-If_ye_love_me.pdf'):
+            os.makedirs(os.path.dirname(os.path.join(self.d, f)), exist_ok=True)
+            open(os.path.join(self.d, f), 'wb').write(b'%PDF-1.4')
+        s = {'score folders': self.d, 'skip folders': 'Hymns', 'folder seasons': 'Lent = lent, General = any'}
+        rows = self.rows({'Title': 'If ye love me', 'Composer': 'Tallis', 'File': 'Tallis-If_ye_love_me.pdf'},
+                         {'Title': 'Gone', 'File': 'Gone.pdf'})
+        r = self.L.scan(rows, s)
+        self.assertEqual(sorted(x['File'] for x in r['new']), ['Byrd-Vigilate.pdf', 'Lent/Farrant-Hide_not_thou_thy_face.pdf'])
+        self.assertEqual([x['Season'] for x in r['new'] if x['Composer'] == 'Farrant'], ['lent'])
+        self.assertEqual(r['moved'], [['Tallis-If_ye_love_me.pdf', 'General/Tallis-If_ye_love_me.pdf']])
+        self.assertEqual(r['missing'], ['Gone.pdf'])
+        rows.append(self.rows({'Title': 'Vigilate', 'Composer': 'William Byrd', 'Format': 'Octavo'})[0])
+        self.assertEqual([x.get('Matches') for x in self.L.scan(rows, s)['new'] if x['Title'] == 'Vigilate'],
+                         ['Vigilate - William Byrd'])                    # the octavos' piece gets its PDF
+        self.assertIsNone(self.L.score_path('../' + os.path.basename(self.d) + '/Byrd-Vigilate.pdf', {'score folders': self.d + '/Lent'}))
+        self.assertTrue(self.L.score_path('Byrd-Vigilate.pdf', s))
+        self.assertEqual(self.L.scan(rows, {})['new'], [])                 # no score folders: nothing to look at
+
+    def test_adding_a_pdf(self):
+        os.makedirs(os.path.join(self.d, 'Easter'))
+        s = {'score folders': self.d, 'folder seasons': 'Easter = easter', 'file new pdfs': '{season}/{composer}-{catalog}-{title}.pdf'}
+        r = self.L.clean({'Title': 'Rise up my love', 'Composer': 'Healey Willan', 'Season': 'easter'})
+        self.assertEqual(self.L.place_pdf(r, b'%PDF-1.4', s), 'Easter/Healey_Willan-Rise_up_my_love.pdf')
+        r = self.L.clean({'Title': 'Vigilate', 'Composer': 'Byrd', 'Season': 'advent'})   # no Advent folder: the top
+        self.assertEqual(self.L.place_pdf(r, b'%PDF-1.4', s), 'Byrd-Vigilate.pdf')
+        for data, row in ((b'not a pdf', r), (b'%PDF', r)):                # not a PDF; one already there
+            with self.assertRaises(ValueError):
+                self.L.place_pdf(row, data, s)
+        self.assertNotIn('/', self.L.place_pdf(self.L.clean({'Title': '../../x', 'Composer': 'a/b'}), b'%PDF', s))
+
+    def test_settings_and_round_trip(self):
+        import library
+        open(os.path.join(self.d, 'library.txt'), 'w').write('# a comment\nscore folders: C:\\Music\\Sacred; D:/More   # two\n')
+        self.assertEqual(library._settings_file(os.path.join(self.d, 'library.txt'), {})['score folders'], 'C:\\Music\\Sacred; D:/More')
+        f = os.path.join(self.d, 'catalog.csv')
+        rows = self.rows({'Title': 'Requiem', 'Composer': 'Fauré', 'Format': 'PDF', 'Mine': 'kept'})
+        library.write(rows, f)
+        back = library.read(f)
+        self.assertEqual((back[0]['Composer'], back[0]['Mine']), ('Fauré', 'kept'))   # accents, and columns of your own
+        library.write(back, f)
+        self.assertEqual(len(os.listdir(os.path.join(self.d, 'backups'))), 1)          # not in git: a copy is kept
+
+
 class Setup(unittest.TestCase):
     def test_settings(self):
         import setup
