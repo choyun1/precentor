@@ -230,8 +230,6 @@ def _sync(message, log):
         if came:
             log.append(f"{name}: brought in {came} change{'s' if came != 1 else ''} from GitHub")
             STALE['site'] = True                       # build the pages again with what came in
-            if d == paths.CORE:
-                log.append('(the tools were updated: stop the launcher and start it again to use them)')
         code, ahead = git(d, 'rev-list', '--count', '@{u}..HEAD')
         n = int(ahead.strip() or 0) if code == 0 else 0
         step(f'{name}: sending yours to GitHub')

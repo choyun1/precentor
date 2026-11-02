@@ -49,7 +49,7 @@ async function undoChange(i) {
 const SYNC_WHY = "Everything you save here is kept on this computer at once, and Undo works without GitHub. Syncing adds:\n" +
   "• a backup of your parish folder in your own GitHub account, safe if this computer is lost;\n" +
   "• your other computers: their changes come here, and yours go there (sync before you switch);\n" +
-  "• updates to the tools (restart the launcher after).";
+  "• updates to the tools (Precentor starts again by itself to use them).";
 function syncPop(html, keep) {
   let pop = $("#syncpop");
   if (!pop) { pop = Object.assign(document.createElement("div"), {id: "syncpop", className: "pop"}); document.body.appendChild(pop); }

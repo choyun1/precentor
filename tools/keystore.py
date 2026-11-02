@@ -32,6 +32,7 @@ def get(service, key):
         v = _get(old, key, OLD_DIR)
         if v is not None:
             put(service, key, v)
+            _forget(old, key, OLD_DIR)                          # or a later forget() would bring it back
     return v
 
 
@@ -47,7 +48,8 @@ def _get(service, key, folder=None):
     f = _file(service, folder)
     if os.path.exists(f):
         try:
-            return json.load(open(f)).get(key)
+            with open(f) as fh:
+                return json.load(fh).get(key)
         except ValueError:
             return None
     return None
@@ -66,7 +68,8 @@ def put(service, key, value):
     f, data = _file(service), {}
     if os.path.exists(f):
         try:
-            data = json.load(open(f))
+            with open(f) as fh:
+                data = json.load(fh)
         except ValueError:
             pass
     data[key] = value
@@ -78,16 +81,24 @@ def put(service, key, value):
 
 
 def forget(service, key):
+    """Remove a value, and any copy under the old name (else get() would move it back)."""
+    _forget(service, key)
+    if service.startswith('precentor-'):
+        _forget('psalter-' + service[len('precentor-'):], key, OLD_DIR)
+
+
+def _forget(service, key, folder=None):
     kr = _keyring()
     if kr:
         try:
             kr.delete_password(service, key)
         except Exception:
             pass
-    f = _file(service)
+    f = _file(service, folder)
     if os.path.exists(f):
         try:
-            data = json.load(open(f))
+            with open(f) as fh:
+                data = json.load(fh)
         except ValueError:
             data = {}
         data.pop(key, None)

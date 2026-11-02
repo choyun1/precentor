@@ -276,7 +276,8 @@ def page_signature():
     h = hashlib.sha1()
     files = glob.glob(os.path.join(TOOLS, '*.py')) + glob.glob(os.path.join(PAGE, '**', '*'), recursive=True)
     if paths.PARISH:
-        files += glob.glob(os.path.join(paths.PARISH, 'plugins', '*', 'plugin.*'))
+        files += [f for f in glob.glob(os.path.join(paths.PARISH, 'plugins', '*', '*'))      # plugin.* and the modules
+                  if f.endswith(('.py', '.js', '.txt'))]                                    # beside them (gmail.py)
     for f in sorted(files):
         if os.path.isfile(f):
             h.update(os.path.relpath(f, ROOT).replace(os.sep, '/').encode())

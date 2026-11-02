@@ -67,8 +67,8 @@ def catalog_file(s=None):
 
 
 def score_folders(s=None):
-    s = settings() if s is None else s
     """The score folders this computer has: list each computer's, and each uses its own."""
+    s = settings() if s is None else s
     return [p for p in (os.path.expanduser(f) for f in _list(s.get('score folders'), r';')) if os.path.isdir(p)]
 
 
@@ -325,7 +325,10 @@ def pdfs(rows=None, s=None):
 
 
 def score_path(file, s=None):
-    """The PDF a row's File names, on this computer; never anything outside a score folder."""
+    """The PDF a row's File names, on this computer; never anything outside a score folder, nor anything but a PDF
+    (the launcher opens it with whatever program the computer uses for that kind of file)."""
+    if not str(file).lower().endswith('.pdf'):
+        return None
     for folder in score_folders(s):
         p = os.path.realpath(os.path.join(folder, file))
         if p.startswith(os.path.realpath(folder) + os.sep) and os.path.isfile(p):

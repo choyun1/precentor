@@ -12,3 +12,6 @@ parish/
 **/.img_*/
 # the browser check's Playwright (npm)
 node_modules/
+# Syncthing's copies of a file changed on two computers at once (never sent to GitHub by Sync)
+*.sync-conflict-*
+.stversions/
