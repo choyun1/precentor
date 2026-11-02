@@ -15,6 +15,8 @@ body { margin: 0; background: var(--bg); color: var(--ink); font: 17px/1.45 "EBG
 header { position: sticky; top: 0; z-index: 5; background: var(--bg); border-bottom: 1px solid var(--line);
   display: flex; align-items: baseline; gap: 24px; padding: 12px 24px; flex-wrap: wrap; }
 header h1 { margin: 0; font-size: 26px; font-weight: normal; letter-spacing: .02em; }
+header h1 .logo { width: 30px; height: 30px; vertical-align: -6px; margin-right: 9px; }
+.logo .ink { stroke: var(--ink); } .logo .ac { stroke: var(--accent); } .logo text { fill: var(--accent); }
 nav button { background: none; border: none; font: inherit; color: var(--muted); padding: 4px 2px; margin-right: 14px; cursor: pointer;
   border-bottom: 2px solid transparent; }
 nav button.on { color: var(--ink); border-color: var(--accent); }
@@ -213,4 +215,10 @@ button:disabled { opacity: .55; cursor: wait; }
 .libtable td { padding: 3px 6px; vertical-align: top; border-bottom: 1px solid var(--line); }
 .libtable td input[type=text] { width: 100%; min-width: 8em; }
 .libtable .nowrap { white-space: nowrap; }
+.libtable th.sortable { cursor: pointer; user-select: none; white-space: nowrap; }
+.libtable th.sortable:hover, .libtable th.sortable.on { color: var(--ink); }
 @media (max-width: 640px) { .libtable .libwhere { display: none; } }
+
+/* a small turning circle: something is being done */
+.spinner { display: inline-block; width: .8em; height: .8em; border: 2px solid currentColor; border-right-color: transparent;
+  border-radius: 50%; vertical-align: -1px; animation: spin .9s linear infinite; }

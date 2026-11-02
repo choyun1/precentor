@@ -38,7 +38,10 @@ function hymnsOf(v) {
   const h = hymnOf(v); return h ? [h] : [];
 }
 const normT = s => String(s || "").toLowerCase().replace(/[^a-z0-9]/g, "");
-function splitPiece(v) { const i = String(v).lastIndexOf(" - "); return i < 0 ? [String(v).trim(), ""] : [v.slice(0, i).trim(), v.slice(i + 3).trim()]; }
+function splitPiece(v) {
+  v = String(v); const m = v.match(/\s*\([^)]*\d[^)]*\)\s*$/), rest = m ? v.slice(0, m.index) : v;   // '(1944 - 2013)' has a ' - '
+  const i = rest.lastIndexOf(" - "); return i < 0 ? [v.trim(), ""] : [rest.slice(0, i).trim(), v.slice(i + 3).trim()];
+}
 function findAnthem(v) {
   const [t, comp] = splitPiece(v);
   const hits = SV.anthems.filter(a => normT(a.title) === normT(t));

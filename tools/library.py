@@ -135,11 +135,13 @@ def piece(r):
 
 
 def split_piece(value):
-    title, sep, composer = (value or '').rpartition(' - ')
+    value = value or ''
+    m = re.search(r'\s*\(([^)]*\d[^)]*)\)\s*$', value)            # the dates first: '(1944 - 2013)' has a ' - '
+    rest, years = (value[:m.start()], re.sub(r'\s+-\s+', '-', m.group(1))) if m else (value, '')
+    title, sep, composer = rest.rpartition(' - ')
     if not sep:
         return value.strip(), '', ''
-    m = re.search(r'\s*\(([^)]*\d[^)]*)\)\s*$', composer)
-    return title.strip(), composer[:m.start()].strip() if m else composer.strip(), m.group(1) if m else ''
+    return title.strip(), composer.strip(), years
 
 
 def find(rows, value):
@@ -192,8 +194,9 @@ def season_of(dates):
 
 
 def unknown(title):
-    """A placeholder such as '???' (the anthem not yet chosen), not a piece."""
-    return not re.sub(r'[\s?.\-–—]', '', split_piece(title or '')[0])
+    """A placeholder such as '???' or 'TBD' (the anthem not yet chosen), not a piece."""
+    t = re.sub(r'[\s?.\-–—]', '', split_piece(title or '')[0])
+    return not t or t.lower() in ('tbd', 'tba')
 
 
 def from_record(rows=None, repertoire=None):

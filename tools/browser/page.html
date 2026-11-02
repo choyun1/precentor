@@ -14,12 +14,13 @@
 </head>
 <body>
 <header>
-  <h1>Precentor</h1>
+  <h1><svg class="logo" viewBox="0 0 100 100" aria-hidden="true"><text x="15" y="38" font-family="EB Garamond, Georgia, serif" font-size="21">1</text><g class="ink" stroke-width="5.5" stroke-linecap="round"><line x1="31" x2="82" y1="31" y2="31"/><line x1="38" x2="80" y1="48" y2="48"/><line x1="31" x2="78" y1="65" y2="65"/><line x1="38" x2="66" y1="82" y2="82"/></g><g class="ac" stroke-width="4" stroke-linecap="round"><line x1="53" x2="53" y1="21" y2="35"/><line x1="65" x2="65" y1="38" y2="52"/><line x1="57" x2="57" y1="55" y2="69"/></g></svg>Precentor</h1>
   <nav>
     <button data-tab="upcoming" class="on">Coming up</button>
     <button data-tab="builder">Service planner</button>
     <button data-tab="texts">Psalms</button>
     <button data-tab="chants">Chants</button>
+    <button data-tab="library">Music library</button>
     <button data-tab="history">History</button>
   </nav>
   <span id="savebar"></span><span id="gitbar"></span>
@@ -29,6 +30,7 @@
   <section id="tab-builder" hidden></section>
   <section id="tab-chants" hidden></section>
   <section id="tab-texts" hidden></section>
+  <section id="tab-library" hidden></section>
   <section id="tab-history" hidden></section>
 </main>
 <dialog id="dlg"><div id="dlgbody"></div><p><button class="small" onclick="dlg.close()">Close</button></p></dialog>
