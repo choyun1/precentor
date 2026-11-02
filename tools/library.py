@@ -191,6 +191,11 @@ def season_of(dates):
     return best if best != 'pentecost' and seen.count(best) / len(seen) >= 0.75 else ''
 
 
+def unknown(title):
+    """A placeholder such as '???' (the anthem not yet chosen), not a piece."""
+    return not re.sub(r'[\s?.\-–—]', '', split_piece(title or '')[0])
+
+
 def from_record(rows=None, repertoire=None):
     """A row for every anthem already sung that isn't in the library. -> (rows, how many added)"""
     import service
@@ -198,7 +203,7 @@ def from_record(rows=None, repertoire=None):
     rep = service.repertoire() if repertoire is None else repertoire
     n = 0
     for item, dates in rep.get('anthem', []):
-        if service.hymns(item) or find(rows, item):
+        if service.hymns(item) or find(rows, item) or unknown(item):
             continue
         title, composer, years = split_piece(item)
         rows.append({c: '' for c in COLUMNS} | {'Title': title, 'Composer': composer, 'Years': years,
@@ -282,6 +287,40 @@ def apply_moves(rows, moved):
     return rows
 
 
+def _comp(composer):
+    """'Thomas Tallis (c. 1505-1585)', 'Tallis', 'Thomson, R' -> the surname, for matching names to files."""
+    name = re.sub(r'\(.*?\)', '', composer or '').strip()
+    name = name.split(',')[0] if ',' in name else name
+    return norm(name.split()[-1]) if name.split() else ''
+
+
+def pdfs(rows=None, s=None):
+    """The PDF on this computer for each piece: its File if that's there, else a PDF in the score folders whose
+    name gives the same title (or the start of it) and composer. -> {piece: file}"""
+    s = settings() if s is None else s
+    rows = read() if rows is None else rows
+    if not score_folders(s):
+        return {}
+    skip = {x.lower() for x in _list(s.get('skip folders'))}
+    pattern = s.get('names') or '{composer}-{title}'
+    found = [(f, parse_name(f, pattern)) for folder in score_folders(s) for f in _files(folder, skip)]
+    out = {}
+    for r in rows:
+        if r['File'] and score_path(r['File'], s):
+            out[piece(r)] = r['File']
+            continue
+        t, c = norm(r['Title']), _comp(r['Composer'])
+        if len(t) < 4:
+            continue
+        for f, d in found:
+            ft = norm(d['Title'])
+            if (ft == t or (len(ft) >= 8 and (t.startswith(ft) or ft.startswith(t)))) and (not c or not d['Composer']
+                                                                                         or _comp(d['Composer']) == c):
+                out[piece(r)] = f
+                break
+    return out
+
+
 def score_path(file, s=None):
     """The PDF a row's File names, on this computer; never anything outside a score folder."""
     for folder in score_folders(s):
@@ -329,13 +368,13 @@ def folder_status(s=None):
     committed, so the launcher tells it again on each computer (serve.py's /api/ping)."""
     s = settings() if s is None else s
     found = score_folders(s)
-    return {'folders': bool(found),
+    return {'folders': bool(found), 'pdfs': pdfs(s=s) if found else {},
             'unfound': [] if found else [os.path.expanduser(f) for f in _list(s.get('score folders'), r';')]}
 
 
 def page_data():
     s = settings()
-    return {'rows': read(), **folder_status(s), 'seasons': list(SEASONS), 'formats': list(FORMATS),
+    return {'rows': read(), **folder_status(s), 'pdfs': {}, 'seasons': list(SEASONS), 'formats': list(FORMATS),
             'where': os.path.relpath(catalog_file(s), paths.HOME).replace(os.sep, '/')
             if catalog_file(s).startswith(paths.HOME) else catalog_file(s)}
 
