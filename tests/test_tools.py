@@ -573,6 +573,12 @@ class Library(unittest.TestCase):
         self.assertEqual(self.L.scan(rows, {})['new'], [])                 # no score folders: nothing to look at
         other = {'score folders': '/no/such/computer; ' + self.d}               # each computer uses the folder it has
         self.assertEqual(self.L.score_folders(other), [self.d])
+        from unittest import mock
+        with mock.patch.object(self.L, 'settings', return_value={'score folders': '/no/such/computer'}), \
+                mock.patch.object(self.L, 'read', return_value=[]):
+            self.assertEqual(self.L.page_data()['unfound'], ['/no/such/computer'])   # the page says which folder it looked for
+        with mock.patch.object(self.L, 'settings', return_value=other), mock.patch.object(self.L, 'read', return_value=[]):
+            self.assertEqual(self.L.page_data()['unfound'], [])
 
     def test_adding_a_pdf(self):
         os.makedirs(os.path.join(self.d, 'Easter'))

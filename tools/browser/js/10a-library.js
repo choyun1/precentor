@@ -90,7 +90,8 @@ function libraryCard() {
   if (!ORDER_NAMES.length || (!LIB.rows.length && !SERVER)) return "";
   const notIn = (REP.anthem || []).filter(x => !hymnsOf(x[0]).length && !libFind(x[0])).length;
   const tools = SERVER ? [notIn ? `<button class="small" onclick="libFromRecord()">Add the ${notIn} ${notIn === 1 ? "anthem" : "anthems"} sung here before</button>` : "",
-    LIB.folders ? `<button class="small" onclick="libScan()">Look for new PDFs</button>` : ""].filter(Boolean).join(" ") : "";
+    LIB.folders ? `<button class="small" onclick="libScan()">Look for new PDFs</button>`
+    : (LIB.unfound || []).length ? `<p class="hint" style="margin:6px 0 0"><span class="warn">Score folder not found</span> on this computer: ${LIB.unfound.map(esc).join("; ")}. Fix "score folders:" in parish/library/library.txt to look for new PDFs here.</p>` : ""].filter(Boolean).join(" ") : "";
   if (!LIB.rows.length) {
     return `<div class="card"><h3 style="font-weight:normal;margin:0 0 4px">Music library <span class="hint">· none yet</span></h3>
       <p class="hint" style="margin:0 0 8px">A list of the music you have, so the anthem boxes can suggest pieces for the season and say where the copies are. Start it from what's been sung, add pieces one at a time from an anthem box, or put a spreadsheet at ${esc(LIB.where)}.</p>

@@ -326,7 +326,9 @@ def place_pdf(row, data, s=None):
 # ------------------------------------------------------------------ for the page
 def page_data():
     s = settings()
-    return {'rows': read(), 'folders': bool(score_folders(s)), 'seasons': list(SEASONS), 'formats': list(FORMATS),
+    found = score_folders(s)
+    unfound = [os.path.expanduser(f) for f in _list(s.get('score folders'), r';') if os.path.expanduser(f) not in found]
+    return {'rows': read(), 'folders': bool(found), 'unfound': [] if found else unfound, 'seasons': list(SEASONS), 'formats': list(FORMATS),
             'where': os.path.relpath(catalog_file(s), paths.HOME).replace(os.sep, '/')
             if catalog_file(s).startswith(paths.HOME) else catalog_file(s)}
 
