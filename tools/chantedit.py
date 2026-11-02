@@ -1,4 +1,4 @@
-"""Editing a chant from the chant browser: its notes, voice by voice, its key and time, its credit line,
+"""Editing a chant from Precentor: its notes, voice by voice, its key and time, its credit line,
 and its facts in the catalog. The launcher (serve.py) calls these; nothing here runs on its own.
 
 A chant file keeps its layout (the score block, staff setup and anything unusual); only the parts the

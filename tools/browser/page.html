@@ -1,11 +1,11 @@
 <!doctype html>
-<!-- The chant browser. tools/browser.py makes site/index.html from this: style.css goes in at STYLE, the
+<!-- Precentor. tools/browser.py makes site/index.html from this: style.css goes in at STYLE, the
      scripts in js/ (one shared scope, in the order of their numbers) at SCRIPT, the parish's plugins at PLUGINS. -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Chant Browser</title>
+<title>Precentor</title>
 <!-- the icon: docs/brand/icon.svg (a verse of a pointed psalter), light or dark as the system is -->
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E %3Cstyle%3E .bg %7B fill: %23fffdf9; %7D .ink %7B stroke: %232a2622; %7D .ac %7B stroke: %238a2b2b; fill: %238a2b2b; %7D %40media (prefers-color-scheme: dark) %7B .bg %7B fill: %23262320; %7D .ink %7B stroke: %23ece6dc; %7D .ac %7B stroke: %23e08a7a; fill: %23e08a7a; %7D %7D %3C/style%3E %3Crect class=%22bg%22 width=%22100%22 height=%22100%22 rx=%2222%22/%3E %3Ctext class=%22ac%22 x=%2215%22 y=%2238%22 stroke=%22none%22 font-family=%22EB Garamond, Georgia, 'Times New Roman', serif%22 font-size=%2221%22%3E1%3C/text%3E %3Cg class=%22ink%22 stroke-width=%225.5%22 stroke-linecap=%22round%22%3E %3Cline x1=%2231%22 x2=%2282%22 y1=%2231%22 y2=%2231%22/%3E %3Cline x1=%2238%22 x2=%2280%22 y1=%2248%22 y2=%2248%22/%3E %3Cline x1=%2231%22 x2=%2278%22 y1=%2265%22 y2=%2265%22/%3E %3Cline x1=%2238%22 x2=%2266%22 y1=%2282%22 y2=%2282%22/%3E %3C/g%3E %3Cg class=%22ac%22 stroke-width=%224%22 stroke-linecap=%22round%22%3E %3Cline x1=%2253%22 x2=%2253%22 y1=%2221%22 y2=%2235%22/%3E %3Cline x1=%2265%22 x2=%2265%22 y1=%2238%22 y2=%2252%22/%3E %3Cline x1=%2257%22 x2=%2257%22 y1=%2255%22 y2=%2269%22/%3E %3C/g%3E %3C/svg%3E">
 <style>
@@ -14,7 +14,7 @@
 </head>
 <body>
 <header>
-  <h1>Chant Browser</h1>
+  <h1>Precentor</h1>
   <nav>
     <button data-tab="upcoming" class="on">Coming up</button>
     <button data-tab="builder">Service planner</button>

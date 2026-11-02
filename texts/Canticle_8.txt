@@ -1,6 +1,6 @@
 Canticle 8 | The Song of Moses (Exodus 15:1-6, 11-13, 17-18)
 % unpointed draft: the words of the 1979 BCP. Pointing for Anglican chant goes in your parish folder
-% (parish/texts/), or use the pointing editor in the chant browser; plainchant tones need none.
+% (parish/texts/), or use the pointing editor in Precentor; plainchant tones need none.
 % Cantemus Domino
 
 1   I will sing to the Lord, for he is lofty and uplifted; *

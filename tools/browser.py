@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build the chant browser: site/index.html, opened straight from your folder (no server needed).
+"""Build Precentor: site/index.html, opened straight from your folder (no server needed).
 
     python tools/browser.py            # refresh data; draw notation for new or changed chants
     python tools/browser.py --redraw   # redraw every chant's notation

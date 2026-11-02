@@ -1,5 +1,5 @@
 @echo off
-rem Double-click to open the chant browser and service planner. Close this window to stop.
+rem Double-click to open Precentor. Close this window to stop.
 cd /d "%~dp0"
 set PY=python
 where py >nul 2>nul && set PY=py -3

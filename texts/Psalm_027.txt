@@ -1,6 +1,6 @@
 Psalm 27 | Dominus illuminatio
 % unpointed draft: the words of the 1979 BCP. Pointing for Anglican chant goes in your parish folder
-% (parish/texts/), or use the pointing editor in the chant browser; plainchant tones need none.
+% (parish/texts/), or use the pointing editor in Precentor; plainchant tones need none.
 
 1   The LORD is my light and my salvation; whom then shall I fear? *
       the LORD is the strength of my life; of whom then shall I be afraid?

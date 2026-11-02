@@ -23,7 +23,7 @@ function goText(id) {
   document.querySelector('nav button[data-tab="texts"]').click();
 }
 // the copy on GitHub Pages: everything to look at, nothing to save
-const demoNote = () => D.demo ? `<div class="card" style="margin-bottom:12px"><b>A demo of the chant browser</b>, for the fictional St. Example's: the chants, the psalms with their moods, and the lectionary are all here to try. Planning and saving a service, building its leaflet and keeping your own notes need a copy on your own computer: see <a href="https://github.com/choyun1/precentor#getting-started" target="_blank" rel="noopener">Getting started</a>.</div>` : "";
+const demoNote = () => D.demo ? `<div class="card" style="margin-bottom:12px"><b>A demo of Precentor</b>, for the fictional St. Example's: the chants, the psalms with their moods, and the lectionary are all here to try. Planning and saving a service, building its leaflet and keeping your own notes need a copy on your own computer: see <a href="https://github.com/choyun1/precentor#getting-started" target="_blank" rel="noopener">Getting started</a>.</div>` : "";
 
 // the launcher's first run: no parish folder yet
 function setupCard() {

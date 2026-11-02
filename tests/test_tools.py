@@ -742,6 +742,16 @@ class History(unittest.TestCase):
         self.assertEqual(paths.read(f), 'two\n')
         self.assertEqual(history.changes()[0]['message'], 'Redid: Service: a')
 
+    def test_changes_from_before_the_rename_can_be_undone(self):
+        f = self.write('a.txt', 'one\n')
+        history.record([f], 'New service: a')
+        self.write('a.txt', 'two\n')
+        subprocess.run(['git', 'commit', '-q', '-am', 'Service: a', '-m', 'Recorded by the chant browser.'], cwd=self.d, check=True)
+        last = history.changes()[0]
+        self.assertEqual(last['message'], 'Service: a')
+        self.assertTrue(history.undo('parish', last['sha'])[0])
+        self.assertEqual(paths.read(f), 'one\n')
+
     def test_a_sync_reports_its_progress(self):
         """Each step of a sync moves the bar on (save, ask GitHub, bring in, send), ending at the last."""
         remote = tempfile.mkdtemp()

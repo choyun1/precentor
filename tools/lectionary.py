@@ -165,7 +165,7 @@ def links():
 
 
 def links_signature():
-    """Which version of the link table the chant browser was built with (so the launcher can tell)."""
+    """Which version of the link table Precentor was built with (so the launcher can tell)."""
     import hashlib
     p = os.path.join(ROOT, 'reference', 'lectionary_links.csv')
     return hashlib.md5(open(p, 'rb').read()).hexdigest()[:12] if os.path.exists(p) else ''

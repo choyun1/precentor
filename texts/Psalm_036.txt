@@ -1,6 +1,6 @@
 Psalm 36 | Dixit injustus
 % unpointed draft: the words of the 1979 BCP. Pointing for Anglican chant goes in your parish folder
-% (parish/texts/), or use the pointing editor in the chant browser; plainchant tones need none.
+% (parish/texts/), or use the pointing editor in Precentor; plainchant tones need none.
 
 1   There is a voice of rebellion deep in the heart of the wicked; *
       there is no fear of God before his eyes.

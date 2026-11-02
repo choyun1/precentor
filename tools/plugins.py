@@ -8,7 +8,7 @@ A plugin is a folder in parish/plugins/ (say parish/plugins/newsletter/) with up
     plugin.py     Python, run by the launcher:
                       ROUTES = {'/api/newsletter': handler}   # handler(data, ctx) -> dict, answered as JSON
                       def data(): return {...}                # handed to the page as SV.plugins['newsletter']
-    plugin.js     JavaScript added to the chant browser page. It can add to the Service planner through
+    plugin.js     JavaScript added to the Precentor page. It can add to the Service planner through
                   PLUGINS.cards (functions returning a card's HTML, shown under the rest of the service),
                   PLUGINS.rows (more rows at the end of the rest of the service), PLUGINS.changed (called
                   when the service changes) and PLUGINS.reset (called when another day is opened). A plugin's

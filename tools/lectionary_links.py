@@ -86,8 +86,8 @@ def main():
         print('stopped: what was found so far is saved')
     keys = {(k, yr) for (k, yr) in rows}
     print(f'{len(found)} days linked ({new} new or changed); {len(keys - set(found))} of the psalm table\'s days not yet seen')
-    import subprocess                               # the chant browser's links are made when it's built
-    print('rebuilding the chant browser…')
+    import subprocess                               # Precentor's links are made when it's built
+    print('rebuilding Precentor…')
     subprocess.run([sys.executable, os.path.join(TOOLS, 'browser.py')], cwd=ROOT)
 
 
