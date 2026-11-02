@@ -1,11 +1,11 @@
 <h1><picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/brand/mark-dark.png">
-  <img alt="Psalmody" src="docs/brand/mark-light.png" width="400">
+  <img alt="Precentor" src="docs/brand/mark-light.png" width="400">
 </picture></h1>
 
-Psalmody sets the psalms of the 1979 Book of Common Prayer for a parish choir, typeset with LilyPond, either to Anglican chant or to the Gregorian psalm tones. Texts and chants are kept apart, so any text can be sung to any chant. One short text file per Sunday becomes the choir's copy (a PDF) and cropped images for the service leaflet. A planner that runs in your web browser opens on the psalm the lectionary appoints, helps choose a chant by mood, key and when it was last sung, and keeps the rest of the service (hymns, anthems, voluntaries, service music) as the parish's record of what was sung.
+Precentor sets the psalms of the 1979 Book of Common Prayer for a parish choir, typeset with LilyPond, either to Anglican chant or to the Gregorian psalm tones. Texts and chants are kept apart, so any text can be sung to any chant. One short text file per Sunday becomes the choir's copy (a PDF) and cropped images for the service leaflet. A planner that runs in your web browser opens on the psalm the lectionary appoints, helps choose a chant by mood, key and when it was last sung, and keeps the rest of the service (hymns, anthems, voluntaries, service music) as the parish's record of what was sung.
 
-It was built for the weekly use of one parish, St. Peter's Episcopal Church in Cambridge, Massachusetts, and is shared in case it helps others. To look around first, there's a [demo of the chant browser](https://choyun1.github.io/psalmody/) for a made-up parish (it can't save). Anything particular to a parish lives in its own folder, apart from the tools, and a parish can add to the planner with plugins of its own.
+It was built for the weekly use of one parish, St. Peter's Episcopal Church in Cambridge, Massachusetts, and is shared in case it helps others. To look around first, there's a [demo of the chant browser](https://choyun1.github.io/precentor/) for a made-up parish (it can't save). Anything particular to a parish lives in its own folder, apart from the tools, and a parish can add to the planner with plugins of its own.
 
 <!-- Contents: one entry per ## section, in order (tools/check_readme.py checks it). -->
 <table><tr><td>
@@ -218,6 +218,6 @@ Maybe later:
 
 ## Credits and license
 
-Psalmody grew out of the LilyPond files Adrian Cho made to set the psalms each week at St. Peter's, Cambridge, and was developed with Claude (Anthropic) in 2026.
+Precentor grew out of the LilyPond files Adrian Cho made to set the psalms each week at St. Peter's, Cambridge, and was developed with Claude (Anthropic) in 2026.
 
 The code is under the MIT License ([LICENSE](LICENSE)). The mood tags, the chant catalog and the other data are under Creative Commons Attribution 4.0 ([LICENSE-DATA.md](LICENSE-DATA.md)). The psalm texts are from the 1979 Book of Common Prayer, which is in the public domain, as are the chants included here. The canticle texts were taken from the Venite project (MIT) and checked against bcponline.org; the Gloria in excelsis and the Te Deum, printed as prose in the BCP, are divided into verses for chanting by the editor. The psalm tones come from the jgabc project (public domain). The EB Garamond fonts are under the SIL Open Font License (`style/fonts/OFL.txt`).

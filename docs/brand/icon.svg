@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
-  <!-- Psalmody: a verse of a pointed psalter, its number and its pointing strokes. Follows light and dark. -->
+  <!-- Precentor: a verse of a pointed psalter, its number and its pointing strokes. Follows light and dark. -->
   <style>
     .bg { fill: #fffdf9; } .ink { stroke: #2a2622; } .ac { stroke: #8a2b2b; fill: #8a2b2b; }
     @media (prefers-color-scheme: dark) { .bg { fill: #262320; } .ink { stroke: #ece6dc; } .ac { stroke: #e08a7a; fill: #e08a7a; } }

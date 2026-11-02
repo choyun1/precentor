@@ -15,7 +15,7 @@ A plugin is a folder in parish/plugins/ (say parish/plugins/newsletter/) with up
                   Sunday keys are kept in B.extra[key] (a string; several lines joined by newlines).
 
 The order settings are read into service.META[order][setting]. The folder is put on sys.path, so a
-plugin can keep more modules beside plugin.py. ctx gives handlers safe_name(name), root (the psalmody folder),
+plugin can keep more modules beside plugin.py. ctx gives handlers safe_name(name), root (the precentor folder),
 record(files, message) (to record a change for Undo) and rebuild() (to rebuild the page).
 """
 import importlib.util, os, sys
