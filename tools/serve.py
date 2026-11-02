@@ -129,7 +129,16 @@ def api_commit(data):
                 history.sync(msg.strip())
     finally:
         P.update(done=P['total'], step='done')
+    if ok and code_changed():                        # the update brought new tools: this launcher still runs the old
+        threading.Timer(0.5, restart).start()
+        return {'ok': ok, 'log': log, 'restarting': True}
     return {'ok': ok, 'log': log}
+
+
+def code_changed():
+    """Whether the tools have changed since this launcher started (a Sync brought in an update)."""
+    import browser
+    return SERVING.get('code') not in (None, browser.page_signature())
 
 
 def api_undo(data):
@@ -566,6 +575,8 @@ def main():
     if page_out_of_date():
         print('the code has changed since the page was built: building it again…')
         rebuild('after an update')
+    import browser
+    SERVING['code'] = browser.page_signature()       # what this launcher is running (see code_changed)
     srv = SERVING['srv'] = Server(('127.0.0.1', PORT), Handler)
     url = f'http://localhost:{PORT}{SITE_URL}'
     print(f'Precentor with the Service planner: {url}\n(Ctrl+C to stop)')
@@ -577,8 +588,8 @@ def main():
         print('\nstopped')
         return
     srv.server_close()
-    if SERVING.get('restart'):                       # after the first-run setup: the same launcher, in the new folder
-        print('starting again with the new parish folder…')
+    if SERVING.get('restart'):                       # after the first-run setup, or a Sync that brought new tools
+        print('starting again…')
         again = [sys.executable, os.path.abspath(__file__), '--no-open']
         if os.name == 'nt':                          # (Windows has no exec: run it and wait, in this window)
             sys.exit(subprocess.call(again))

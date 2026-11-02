@@ -659,6 +659,16 @@ class Setup(unittest.TestCase):
 
 
 class Server(unittest.TestCase):
+    def test_a_sync_that_brings_new_tools_restarts_the_launcher(self):
+        import browser, serve
+        from unittest import mock
+        with mock.patch.dict(serve.SERVING, {'code': browser.page_signature()}):
+            self.assertFalse(serve.code_changed())
+        with mock.patch.dict(serve.SERVING, {'code': 'older'}):
+            self.assertTrue(serve.code_changed())
+        with mock.patch.dict(serve.SERVING, {}, clear=True):
+            self.assertFalse(serve.code_changed())                       # not started by main(): nothing to compare
+
     def test_a_tool_can_print_a_check_mark_on_windows(self):
         import serve, tempfile
         from unittest import mock

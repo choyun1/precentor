@@ -90,6 +90,14 @@ async function commitAll() {
   poll();
   try { j = await post("/api/commit", {}); } catch (e) { j = {ok: false, error: "the launcher didn't answer: is it still running?"}; }
   polling = false;
+  if (j.ok && j.restarting) {                        // an update to Precentor itself: the launcher starts again
+    syncPop(`<span class="ok">✓</span> Brought in an update to Precentor: starting it again…`, true);
+    for (let i = 0; i < 120; i++) {
+      await new Promise(r => setTimeout(r, 1000));
+      try { if ((await fetch("/api/ping").then(r => r.json())).ok && i > 0) { location.reload(); return; } } catch (e) {}
+    }
+    syncPop(`<span class="warn">Precentor didn't start again:</span> close its window and open it again.`); return;
+  }
   if (j.ok && /brought in/.test(j.log || "")) { location.reload(); return; }     // new things came: show them
   if (j.ok) syncPop(`<span class="ok">✓</span> ${esc(j.log || "Done.").replace(/\n/g, "<br>")}`);
   else syncPop(`<span class="warn">Could not sync:</span> ${esc(j.error || j.log || "something went wrong").replace(/\n/g, "<br>")}
