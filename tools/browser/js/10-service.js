@@ -110,7 +110,7 @@ function slotHint(s, value) {
   }
   const r = (REP[family(s)] || []).find(x => x[0] === v);
   const before = r ? r[1].filter(d => d < B.date) : [];
-  return `<span class="hint">${before.length ? `done ${before.length}× before · last ${esc(before[before.length - 1])}` : "not done here before"}</span>${s.kind === "anthem" ? libHint(v) : ""}`;
+  return `<span class="hint">${before.length ? `done ${before.length}× before · last ${esc(before[before.length - 1])}` : "not done here before"}</span>${s.kind === "anthem" || family(s) === "organ" ? libHint(v) : ""}`;
 }
 function anthemBox(k) {
   const v = (B.svc[k] || "").trim();
@@ -165,7 +165,7 @@ function seqCard() {
     const hint = s.kind === "lesson" ? lessonHint(v, n) : slotHint(s, v);
     return `<div class="seqrow"><select onchange="B.seq[${i}][0]=this.value; renderBuilder()">${opts}</select>
       <div><input type="text" value="${esc(v)}" ${list ? `list="${list}"` : ""} placeholder="${esc(ph)}" onchange="B.seq[${i}][1]=this.value.trim(); renderBuilder()" style="width:100%">
-        <div class="svhint">${hint}</div>${s.kind === "anthem" ? seqAnthemBox(i) : ""}</div>
+        <div class="svhint">${hint}</div>${s.kind === "anthem" ? seqAnthemBox(i) : family(s) === "organ" ? libAddBox("seq" + i, v, true) : ""}</div>
       <div class="seqbtn"><span class="link" title="move up" onclick="seqMove(${i},-1)">↑</span> <span class="link" title="move down" onclick="seqMove(${i},1)">↓</span> <span class="link" title="remove" onclick="B.seq.splice(${i},1); renderBuilder()">✕</span></div></div>`;
   }).join("");
   const adds = sl.filter(x => x.repeat || !(B.seq || []).some(([k]) => k === x.key));
@@ -223,7 +223,7 @@ function serviceCard() {
     return `<div class="svrow"><label>${esc(s.label.replace("{hymn|anthem}", "hymn or anthem"))}</label>
       <div><input type="text" value="${esc(B.svc[s.key] || "")}" ${list ? `list="${list}"` : ""} placeholder="${ph}" onchange="setSvc('${s.key}', this.value)" style="width:100%">
       <div id="sh-${sid(s.key)}" class="svhint">${slotHint(s)}</div>
-      <div id="ab-${sid(s.key)}">${s.kind === "anthem" ? anthemBox(s.key) : ""}${s.words ? wordsHint(s) : ""}</div></div></div>`;
+      <div id="ab-${sid(s.key)}">${s.kind === "anthem" ? anthemBox(s.key) : family(s) === "organ" ? libAddBox(sid(s.key), B.svc[s.key], true) : ""}${s.words ? wordsHint(s) : ""}</div></div></div>`;
   };
   return `${beforeCard()}<div class="card"><h3 style="font-weight:normal;margin:0 0 4px">The rest of the service <span class="hint">· ${esc(order)}</span>${info((serviceOn(B.date) ? "Already planned for this date (the imported record or this Sunday's file). " : "") + "Service music carries on from the last service of this kind unless you change it. The order of service comes from the Service box (or the day), and is set out in services.txt.")}</h3>
     
@@ -237,8 +237,8 @@ function serviceCard() {
   </div>`;
 }
 function repLists() {
-  const fams = [...new Set(Object.keys(REP).concat("anthem"))];       // anthems: the library first (10a-library.js)
-  return fams.map(f => `<datalist id="rep-${sid(f)}">${f === "anthem" ? anthemOptions() : REP[f].map(r => `<option value="${esc(r[0])}">${r[1].length}× · last ${esc(r[1][r[1].length - 1])}</option>`).join("")}</datalist>`).join("");
+  const fams = [...new Set(Object.keys(REP).concat("anthem", "organ"))];   // anthems and organ: the library first (10a-library.js)
+  return fams.map(f => `<datalist id="rep-${sid(f)}">${f === "anthem" || f === "organ" ? libOptions(f) : REP[f].map(r => `<option value="${esc(r[0])}">${r[1].length}× · last ${esc(r[1][r[1].length - 1])}</option>`).join("")}</datalist>`).join("");
 }
 function setSvc(k, v) {
   B.svc[k] = v.trim(); refreshSlot(k);
@@ -250,7 +250,7 @@ function setSvc(k, v) {
 }
 function refreshSlot(k) {
   const s = anySlot(k);
-  if (s) { const h = $("#sh-" + sid(k)); if (h) h.innerHTML = slotHint(s); const ab = $("#ab-" + sid(k)); if (ab && s.kind === "anthem") ab.innerHTML = anthemBox(k); }
+  if (s) { const h = $("#sh-" + sid(k)); if (h) h.innerHTML = slotHint(s); const ab = $("#ab-" + sid(k)); if (ab && s.kind === "anthem") ab.innerHTML = anthemBox(k); else if (ab && family(s) === "organ") ab.innerHTML = libAddBox(sid(k), B.svc[k], true); }
   refreshFile();
 }
 function refreshFile() { const pre = $("#bfile"); if (pre) pre.textContent = sundayText(); PLUGINS.changed.forEach(f => f()); }

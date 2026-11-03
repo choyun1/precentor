@@ -553,6 +553,32 @@ class Library(unittest.TestCase):
         self.assertEqual((rows[1]['Season'], rows[1]['Years']), ('', '1872-1958'))   # all year round: any time
         self.assertEqual(self.L.from_record(rows, rep)[1], 0)
 
+    def test_organ_music(self):
+        rep = {'anthem': [['Hodie - Sweelinck', ['2024-12-24']]],
+               'organ': [['Fugue in A minor, BWV 543/2 - J. S. Bach (1685-1750)', ['2025-03-02', '2025-07-13']], ['???', ['2025-02-02']]]}
+        rows, n = self.L.from_record([], rep)
+        self.assertEqual((n, [r['Voicing'] for r in rows]), (2, ['', 'organ']))     # organ pieces done before: organ
+        os.makedirs(os.path.join(self.d, 'Sacred')), os.makedirs(os.path.join(self.d, 'Organ'))
+        for f in ('Sacred/Byrd-Vigilate.pdf', 'Organ/Bach-BWV_0543-Prelude_and_Fugue_in_A_minor.pdf', 'Organ/Brahms-Op_122-Elf_Chorvorspiele.pdf'):
+            open(os.path.join(self.d, f), 'wb').write(b'%PDF')
+        s = {'score folders': self.d + '/Sacred', 'organ folders': self.d + '/Organ'}
+        self.assertEqual(len(self.L.score_folders(s)), 2)
+        new = {x['File']: x['Voicing'] for x in self.L.scan(rows, s)['new']}
+        self.assertEqual(new, {'Byrd-Vigilate.pdf': '', 'Bach-BWV_0543-Prelude_and_Fugue_in_A_minor.pdf': 'organ',
+                               'Brahms-Op_122-Elf_Chorvorspiele.pdf': 'organ'})
+        rows += self.rows({'Title': 'Schmücke dich, o liebe Seele, Op. 122, No. 5', 'Composer': 'Johannes Brahms'},
+                          {'Title': 'Prelude in E minor, BWV 555/1', 'Composer': 'J. S. Bach'})          # no PDF of 555
+        got = self.L.pdfs(rows, s)                       # a piece finds the PDF of the work (or book) it's from
+        self.assertEqual(got.get('Fugue in A minor, BWV 543/2 - J. S. Bach (1685-1750)'), 'Bach-BWV_0543-Prelude_and_Fugue_in_A_minor.pdf')
+        self.assertEqual(got.get('Schmücke dich, o liebe Seele, Op. 122, No. 5 - Johannes Brahms'), 'Brahms-Op_122-Elf_Chorvorspiele.pdf')
+        self.assertNotIn('Prelude in E minor, BWV 555/1 - J. S. Bach', got)
+        r = self.L.clean({'Title': 'Fugue in G minor', 'Composer': 'Bach', 'Voicing': 'organ'})        # added in the planner
+        self.assertEqual(self.L.place_pdf(r, b'%PDF', s), 'Bach-Fugue_in_G_minor.pdf')
+        self.assertTrue(os.path.exists(os.path.join(self.d, 'Organ', 'Bach-Fugue_in_G_minor.pdf')))
+        r = self.L.clean({'Title': 'Ave verum', 'Composer': 'Byrd', 'Voicing': 'SATB, organ'})
+        self.L.place_pdf(r, b'%PDF', s)
+        self.assertTrue(os.path.exists(os.path.join(self.d, 'Sacred', 'Byrd-Ave_verum.pdf')))
+
     def test_dates_with_a_dash(self):
         self.assertEqual(self.L.split_piece('Song for Athene - John Tavener (1944 - 2013)'),
                          ('Song for Athene', 'John Tavener', '1944-2013'))

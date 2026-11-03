@@ -151,6 +151,27 @@ try {
     await page.click("text=put the chant's own music back"); await wait(300);
     if (/music:/.test(await page.evaluate(() => sundayText()))) throw new Error("not put back");
   });
+  await step("Planner: organ music in the prelude and postlude, from the library", async () => {
+    await page.click("nav button[data-tab=builder]"); await wait(300);
+    const got = await page.evaluate(() => {
+      setDate("2026-11-22");
+      LIB.rows.push({Title: "Toccata for the test", Composer: "Nobody", Voicing: "organ", Season: ""},
+                    {Title: "Anthem for the test", Composer: "Nobody", Voicing: "SATB", Season: ""});
+      libChanged(); B.svc.prelude = ""; B.svc.postlude = ""; renderBuilder();
+      const organ = [...document.querySelectorAll("#rep-organ option")].map(o => o.value);
+      const anthem = [...document.querySelectorAll("#rep-anthem option")].map(o => o.value);
+      libUse(LIB.rows.length - 2);                         // + service: the organ piece goes to the prelude
+      const prelude = B.svc.prelude;
+      B.svc.postlude = "Sortie for the test - Nobody"; renderBuilder();
+      const add = (document.querySelector("#ab-postlude") || {}).textContent || "", voicing = (document.querySelector("#lv-postlude") || {}).value;
+      LIB.rows.splice(-2); libChanged(); B.svc.prelude = ""; B.svc.postlude = ""; renderBuilder();
+      return {organ: organ.includes("Toccata for the test - Nobody"), notAnthem: !anthem.includes("Toccata for the test - Nobody"),
+              anthem: anthem.includes("Anthem for the test - Nobody"), prelude, add: /Not in the library/.test(add) || !SERVER, voicing: SERVER ? voicing : "organ"};
+    });
+    if (!got.organ || !got.notAnthem || !got.anthem) throw new Error("the suggestions are mixed up: " + JSON.stringify(got));
+    if (got.prelude !== "Toccata for the test - Nobody") throw new Error("+ service didn't fill the prelude: " + got.prelude);
+    if (!got.add || got.voicing !== "organ") throw new Error("no 'add it to the library' under the postlude: " + JSON.stringify(got));
+  });
   await step("Sync: the confirmation opens and cancels", async () => {
     await page.click("button.sync"); await wait(200);
     await page.click("#syncpop button:has-text('Cancel')");

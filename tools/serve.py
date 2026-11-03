@@ -199,7 +199,7 @@ def api_library_add(data):
 
 
 def api_library_from_record(data):
-    """Start (or add to) the library from every anthem already sung."""
+    """Start (or add to) the library from every anthem and organ piece already done."""
     import library
     rows, n = library.from_record()
     if n:
