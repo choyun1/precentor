@@ -235,7 +235,9 @@ function sortCompare(levels, chantOf) {
       if (vb == null || vb === "") return -1;
       return (va < vb ? -1 : 1) * l.d;
     }
-    return chantOf(a).id.localeCompare(chantOf(b).id, undefined, {numeric: true});
+    // a tie (the same composer, say) goes by the name on screen: Alcock in A♭, in B♭ (1), in B♭ (2), in E♭ …
+    const ca = chantOf(a), cb = chantOf(b);
+    return CN(ca.id).localeCompare(CN(cb.id), undefined, {numeric: true}) || ca.id.localeCompare(cb.id, undefined, {numeric: true});
   };
 }
 // the control: one row per level; view is "chants" or "picker"
