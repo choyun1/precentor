@@ -917,6 +917,37 @@ class History(unittest.TestCase):
         finally:
             subprocess.run(['rm', '-rf', remote, core])
 
+    def test_a_chant_saved_in_precentor_is_sent_after_bringing_in_an_update(self):
+        """A chant saved in Precentor while GitHub had new tools: bringing them in makes a merge commit, which once
+        kept the chant here for good (the merge's message has no Precentor mark)."""
+        remote, core, other = tempfile.mkdtemp(), tempfile.mkdtemp(), tempfile.mkdtemp()
+        try:
+            subprocess.run(['git', 'init', '-q', '--bare', remote], check=True)
+            for d in (core, other):
+                subprocess.run(['git', 'clone', '-q', remote, d], check=True, capture_output=True)
+                for k, v in (('user.name', 'T'), ('user.email', 't@t')):
+                    subprocess.run(['git', 'config', k, v], cwd=d, check=True)
+            open(os.path.join(core, 'tool.py'), 'w').write('x = 1\n')
+            subprocess.run(['git', 'add', '-A'], cwd=core, check=True)
+            subprocess.run(['git', 'commit', '-q', '-m', 'tools'], cwd=core, check=True)
+            subprocess.run(['git', 'push', '-q', '-u', 'origin', 'HEAD'], cwd=core, check=True, capture_output=True)
+            subprocess.run(['git', 'pull', '-q', 'origin', 'HEAD'], cwd=other, check=True, capture_output=True)
+            open(os.path.join(other, 'new_tool.py'), 'w').write('y = 1\n')          # an update to the tools on GitHub
+            subprocess.run(['git', 'add', '-A'], cwd=other, check=True)
+            subprocess.run(['git', 'commit', '-q', '-m', 'an update'], cwd=other, check=True)
+            subprocess.run(['git', 'push', '-q', 'origin', 'HEAD'], cwd=other, check=True, capture_output=True)
+            paths.CORE = core
+            chant = os.path.join(core, 'chant.ly')
+            open(chant, 'w').write('% a public-domain chant\n')
+            history.record([chant], 'New chant: X-1')
+            ok, log = history.sync('by hand')
+            self.assertTrue(ok, log)
+            pushed = subprocess.run(['git', 'ls-tree', '-r', '--name-only', 'HEAD'], cwd=remote,
+                                    capture_output=True, text=True).stdout.split()
+            self.assertEqual(pushed, ['chant.ly', 'new_tool.py', 'tool.py'], log)
+        finally:
+            subprocess.run(['rm', '-rf', remote, core, other])
+
     def test_only_a_change_id_reaches_git(self):
         self.assertEqual(history.undo('parish', '--output=/tmp/x'), (False, 'no such change'))
         self.assertEqual(history.undo('parish', 'HEAD~2..HEAD'), (False, 'no such change'))
