@@ -178,8 +178,8 @@ def to_send(d):
     """The commits Sync would send from d: in the tools' folder, only if every one of them was made in Precentor."""
     code, ahead = git(d, 'rev-list', '@{u}..HEAD')
     shas = ahead.split() if code == 0 else []
-    if shas and tools_only(d):
-        code, bodies = git(d, 'log', '--format=%B%x00', '@{u}..HEAD')
+    if shas and tools_only(d):                       # (Sync's own merges of GitHub's updates carry no mark)
+        code, bodies = git(d, 'log', '--no-merges', '--format=%B%x00', '@{u}..HEAD')
         if code != 0 or not all(any(m in b for m in MARKS) for b in bodies.split('\0') if b.strip()):
             return []
     return shas
