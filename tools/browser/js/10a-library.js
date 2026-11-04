@@ -1,6 +1,7 @@
 // ---------- the music library (parish/library/catalog.csv; tools/library.py) ----------
 // Optional: with no library the planner works as before. Pieces are suggested for the day (its occasion, then its
-// season, then any time), and can be added from the anthem box, from what's been sung, or from the score folders.
+// season, then any time): the choir's in the anthem boxes, organ music in the prelude and postlude. They can be added
+// from those boxes, from what's been done before, or from the score folders.
 const LIB = SV.library || {rows: [], folders: false, seasons: [], formats: [], where: "library/catalog.csv"};
 const SEASON_NAMES = {advent: "Advent", christmas: "Christmas", epiphany: "Epiphany", lent: "Lent", holy_week: "Holy Week",
   easter: "Easter", pentecost: "after Pentecost"};
@@ -12,7 +13,7 @@ function libIndex() {
   if (LIBX && LIBX.rows === LIB.rows && LIBX.n === LIB.rows.length) return LIBX;
   const byTitle = new Map();
   for (const r of LIB.rows) { const k = normT(r.Title); if (!byTitle.has(k)) byTitle.set(k, []); byTitle.get(k).push(r); }
-  LIBX = {rows: LIB.rows, n: LIB.rows.length, byTitle, found: new Map(), sung: null, options: {}};
+  LIBX = {rows: LIB.rows, n: LIB.rows.length, byTitle, found: new Map(), sung: null, options: {}, fam: new Map()};
   return LIBX;
 }
 const libChanged = () => { LIBX = null; };
@@ -31,11 +32,21 @@ function libOccasion(r) {
 }
 // 0: for this day, 1: this season, 2: any time, 3: another season
 const libRank = r => libOccasion(r) ? 0 : r.Season && r.Season === daySeason() ? 1 : !r.Season ? 2 : 3;
+// a piece's family in the record: organ music is done as a prelude or postlude, the rest as an anthem
+function libFam(r) {
+  const X = libIndex();
+  if (!X.fam.has(r)) X.fam.set(r, libFor(r) === "organ" ? "organ" : "anthem");
+  return X.fam.get(r);
+}
 function libSung(r) {
   const X = libIndex();
   if (!X.sung) {
     X.sung = new Map();
-    for (const x of REP.anthem || []) { const hit = libFind(x[0]); if (hit && !X.sung.has(hit)) X.sung.set(hit, x[1]); }
+    for (const f of ["anthem", "organ"]) for (const x of REP[f] || []) {
+      const hit = libFind(x[0]); if (!hit) continue;
+      const had = X.sung.get(hit);                // the same piece under two names, or as an anthem and a voluntary
+      X.sung.set(hit, had ? [...new Set(had.concat(x[1]))].sort() : x[1]);
+    }
   }
   return (X.sung.get(r) || []).filter(d => d < (B.date || "9999"));
 }
@@ -43,16 +54,18 @@ function libWhere(r) {
   const bits = [r.Format, r.Location, r.Copies ? r.Copies + " copies" : "", r["Publisher no."] ? "order no. " + r["Publisher no."] : "", r.Voicing];
   return bits.filter(Boolean).map(esc).join(" · ");
 }
-// the anthem box's suggestions: the library for this day first, then everything sung before that isn't in it
-function anthemOptions() {
-  const X = libIndex(), key = B.date || "";
+// the suggestions for an anthem box (fam "anthem": the choir's pieces) or a prelude or postlude ("organ"): the
+// library for this day first, then everything done before that isn't in it
+function libOptions(fam) {
+  const X = libIndex(), key = fam + " " + (B.date || "");
   if (X.options[key] !== undefined) return X.options[key];
-  const rows = LIB.rows.filter(libReal).map(r => [libRank(r), r]).sort((a, b) => a[0] - b[0] || normT(a[1].Title).localeCompare(normT(b[1].Title)));
+  const rows = LIB.rows.filter(r => libReal(r) && libFam(r) === fam).map(r => [libRank(r), r])
+    .sort((a, b) => a[0] - b[0] || normT(a[1].Title).localeCompare(normT(b[1].Title)));
   const lib = rows.map(([k, r]) => {
     const sung = libSung(r), when = k === 0 ? "for this day" : r.Season ? SEASON_NAMES[r.Season] || r.Season : "any time";
-    return `<option value="${esc(libPiece(r))}">${libFor(r) === "organ" ? "organ · " : ""}${esc(when)}${r.Format ? " · " + esc(r.Format) : ""}${sung.length ? ` · ${sung.length}× · last ${esc(sung[sung.length - 1])}` : " · not sung here yet"}</option>`;
+    return `<option value="${esc(libPiece(r))}">${esc(when)}${r.Format ? " · " + esc(r.Format) : ""}${sung.length ? ` · ${sung.length}× · last ${esc(sung[sung.length - 1])}` : ` · not ${fam === "organ" ? "played" : "sung"} here yet`}</option>`;
   });
-  const rest = (REP.anthem || []).filter(x => !libFind(x[0])).map(r => `<option value="${esc(r[0])}">${r[1].length}× · last ${esc(r[1][r[1].length - 1])}</option>`);
+  const rest = (REP[fam] || []).filter(x => !libFind(x[0])).map(r => `<option value="${esc(r[0])}">${r[1].length}× · last ${esc(r[1][r[1].length - 1])}</option>`);
   return (X.options[key] = lib.concat(rest).join(""));
 }
 // under an anthem: what the library knows of it, with its PDF
@@ -70,7 +83,7 @@ async function libOpen(i) {
 }
 // "Add to the library", under an anthem that isn't in it
 const LIBV = {};
-function libAddBox(id, v) {
+function libAddBox(id, v, organ) {
   v = String(v || "").trim();
   if (!SERVER || !v || hymnsOf(v).length || libFind(v)) return "";
   LIBV[id] = v;
@@ -84,7 +97,7 @@ function libAddBox(id, v) {
       <label>Season <select id="ls-${id}"><option value="">any time</option>${opt(LIB.seasons, daySeason(), SEASON_NAMES)}</select></label>
       <label>Occasion <input type="text" id="lo-${id}" placeholder="e.g. Ascension"></label>
       <label>Format <select id="lf-${id}"><option value=""></option>${opt(LIB.formats, "")}</select></label>
-      <label>Voicing <input type="text" id="lv-${id}" placeholder="SATB, organ"></label>
+      <label>Voicing <input type="text" id="lv-${id}" value="${organ ? "organ" : ""}" placeholder="SATB, organ"></label>
       <label>Where the copies are <input type="text" id="ll-${id}" placeholder="e.g. choir library, box 14"></label>
       <label>Copies <input type="number" min="0" id="ln-${id}" style="width:5em"></label>
       <label>Publisher no. <input type="text" id="lp-${id}" placeholder="for reordering"></label>
@@ -171,8 +184,10 @@ function libSortControl() {
 }
 function libTools() {
   if (!SERVER) return "";
-  const notIn = (REP.anthem || []).filter(x => libReal({Title: x[0]}) && !hymnsOf(x[0]).length && !libFind(x[0])).length;
-  return [notIn ? `<button class="small" onclick="libFromRecord()">Add the ${notIn} ${notIn === 1 ? "anthem" : "anthems"} sung here before</button>` : "",
+  const not = f => (REP[f] || []).filter(x => libReal({Title: x[0]}) && !hymnsOf(x[0]).length && !libFind(x[0])).length;
+  const na = not("anthem"), no = not("organ"), n = na + no;
+  const what = [na ? `${na} ${na === 1 ? "anthem" : "anthems"}` : "", no ? `${no} organ ${no === 1 ? "piece" : "pieces"}` : ""].filter(Boolean).join(" and ");
+  return [n ? `<button class="small" onclick="libFromRecord()">Add the ${what} done here before</button>` : "",
     LIB.folders ? `<button class="small" onclick="libScan()">Look for new PDFs</button>`
     : (LIB.unfound || []).length ? `<p class="hint" style="margin:6px 0 0"><span class="warn">Score folder not found</span> on this computer: ${LIB.unfound.map(esc).join("; ")}. Fix "score folders:" in parish/library/library.txt to look for new PDFs here.</p>` : ""].filter(Boolean).join(" ");
 }
@@ -181,7 +196,7 @@ function renderLibrary() {
   const el = $("#tab-library"); if (!el || el.hidden) return;
   if (!LIB.rows.length) {
     el.innerHTML = `<div class="card"><h3 style="font-weight:normal;margin:0 0 4px">Music library <span class="hint">· none yet</span></h3>
-      <p class="hint" style="margin:0 0 8px">A list of the music you have, so the anthem boxes can suggest pieces for the season and say where the copies are. Start it from what's been sung, add pieces one at a time from an anthem box in the Service planner, or put a spreadsheet at ${esc(LIB.where)}.</p>
+      <p class="hint" style="margin:0 0 8px">A list of the music you have, so the anthem boxes (and the prelude and postlude, for organ music) can suggest pieces for the season and say where the copies are. Start it from what's been done here, add pieces one at a time from those boxes in the Service planner, or put a spreadsheet at ${esc(LIB.where)}.</p>
       ${libTools()}${libScanCard()}</div>`;
     return;
   }
@@ -194,7 +209,7 @@ function renderLibrary() {
   const rows = hits.map(r => {
     const sung = libSung(r), i = LIB.rows.indexOf(r), pdf = libPdf(r), fr = libFor(r);
     return `<tr><td>${pdf ? `<span class="link" title="open the PDF" onclick="libOpen(${i})">${esc(r.Title)}</span> <span class="hint">PDF</span>` : esc(r.Title)}
-        ${date ? ` <span class="link hint" title="put it in the first empty anthem slot of the service for ${esc(date)}" onclick="libUse(${i})">+ service</span>` : ""}</td>
+        ${date ? ` <span class="link hint" title="put it in the first empty ${fr === "organ" ? "prelude or postlude" : "anthem slot"} of the service for ${esc(date)}" onclick="libUse(${i})">+ service</span>` : ""}</td>
       <td>${esc(r.Composer)}${r.Years ? ` <span class="hint">(${esc(r.Years)})</span>` : ""}</td>
       <td class="nowrap"><span class="forlabel ${fr}" title="${esc(r.Voicing || (fr === "organ" ? "organ alone (guessed from the title: set the Voicing to be sure)" : "the choir"))}">${FOR_NAMES[fr]}</span></td>
       <td class="hint nowrap">${r.Season ? esc(SEASON_NAMES[r.Season] || r.Season) : "any time"}</td>${where ? `<td class="hint libwhere">${libWhere(r)}</td>` : ""}
@@ -209,7 +224,7 @@ function renderLibrary() {
         <p class="hint" style="margin:6px 0 0">${hits.length === real.length ? real.length + " pieces" : hits.length + " of " + real.length + " pieces"}${Object.keys(LIB.pdfs || {}).length ? ` · ${Object.keys(LIB.pdfs).length} with a PDF on this computer` : ""}</p></div>
       ${libSortControl()}</div>
     <div id="libtable">${rows ? `<table class="libtable"><tr>${cols.map(th).join("")}</tr>${rows}</table>` : '<p class="hint">Nothing matches.</p>'}</div>
-    <p class="hint" style="margin:8px 0 0">${date ? `“+ service” puts a piece in the first empty anthem slot of the service for ${esc(date)} in the Service planner. ` : ""}Organ or choir comes from a piece's Voicing (“organ” alone is organ); without one, it's guessed from the title. Kept in ${esc(LIB.where)}.</p>
+    <p class="hint" style="margin:8px 0 0">${date ? `“+ service” puts a piece in the first empty anthem slot (organ music: the prelude or postlude) of the service for ${esc(date)} in the Service planner. ` : ""}Organ or choir comes from a piece's Voicing (“organ” alone is organ); without one, it's guessed from the title. Kept in ${esc(LIB.where)}.</p>
     ${tools ? `<p style="margin:8px 0 0">${tools}</p>` : ""}${libScanCard()}</div>`;
 }
 function libRefresh() {
@@ -218,13 +233,13 @@ function libRefresh() {
   const q = $("#libq"); if (q) { q.focus(); if (pos !== null) q.setSelectionRange(pos, pos); }
 }
 function libUse(i) {
-  const v = libPiece(LIB.rows[i]);
+  const r = LIB.rows[i], v = libPiece(r), fam = libFam(r), mine = x => family(x) === fam;
   if (isSeq()) {
-    const s = slotsOf(curOrder()).find(x => x.kind === "anthem");
+    const s = slotsOf(curOrder()).find(mine);
     B.seq.push([s ? s.key : "also", v]);
   } else {
-    const s = slotsOf(curOrder()).filter(x => x.kind === "anthem").find(x => !(B.svc[x.key] || "").trim());
-    if (!s) { alert("Every anthem slot of that service is filled: empty one first."); return; }
+    const s = slotsOf(curOrder()).filter(mine).find(x => !(B.svc[x.key] || "").trim());
+    if (!s) { alert(`Every ${fam === "organ" ? "prelude and postlude" : "anthem slot"} of that service is filled: empty one first.`); return; }
     B.svc[s.key] = v;
   }
   $('nav button[data-tab="builder"]').click();

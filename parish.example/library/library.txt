@@ -3,6 +3,8 @@
 # Where the PDFs are: ~ is your home folder on each computer; list one per computer if they differ (;),
 # and each computer uses the one it has:
 # score folders:   ~/Music/Anthems; D:/Music/Anthems
+# Folders of organ music (also score folders): their PDFs are offered for the prelude and postlude:
+# organ folders:   ~/Music/Organ
 # How a PDF's name reads, so a new one becomes a row ({composer} {title} {catalog}; _ for spaces):
 # names:           {composer}-{title}
 # Where a PDF added in the planner goes, inside the first score folder:
