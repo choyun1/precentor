@@ -2,21 +2,27 @@
 //
 //     python tools/browser.py && node tests/ui_check.mjs        (needs: npm install playwright; npx playwright install chromium)
 //
-// It starts the launcher on a spare port (in a throwaway copy of nothing: it only reads, plus one Sunday file it
-// removes), opens every tab, and tries the main things on each. Any error in the page fails the check.
+// It starts the launcher on a spare port in a throwaway copy of this folder (and of parish/, if there is one, without
+// its history), so the Sunday file it saves, and what Precentor records of it, never reach your own folders or their
+// git history; then opens every tab and tries the main things on each. Any error in the page fails the check.
 import { createRequire } from "node:module";
 import { spawn } from "node:child_process";
-import { mkdtempSync, rmSync, existsSync, readFileSync } from "node:fs";
+import { mkdtempSync, rmSync, readFileSync, cpSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join, dirname } from "node:path";
+import { join, dirname, basename } from "node:path";
 import { fileURLToPath } from "node:url";
 const { chromium } = createRequire(import.meta.url)("playwright");     // installed here (npm) or globally
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const PORT = 8700 + Math.floor(Math.random() * 90);
 const home = mkdtempSync(join(tmpdir(), "precentor-ui-"));
+// the copy it runs in: no git histories (Precentor starts a throwaway one), no built PDFs, no installed packages
+const WORK = join(home, "precentor");
+const SKIP = new Set([".git", "node_modules", ".venv", "__pycache__"]);
+cpSync(ROOT, WORK, {recursive: true, dereference: true,
+  filter: src => !SKIP.has(basename(src)) && src !== join(ROOT, "parish", "output")});
 const py = process.env.PYTHON || "python";
-const server = spawn(py, ["tools/serve.py"], {cwd: ROOT, env: {...process.env, PRECENTOR_PORT: String(PORT), BROWSER: "true", HOME: home}});
+const server = spawn(py, ["tools/serve.py"], {cwd: WORK, env: {...process.env, PRECENTOR_PORT: String(PORT), BROWSER: "true", HOME: home}});
 let serverLog = ""; server.stdout.on("data", d => serverLog += d); server.stderr.on("data", d => serverLog += d);
 
 const errors = [], steps = [];
@@ -187,7 +193,6 @@ try {
   await browser.close();
   server.kill();
   rmSync(home, {recursive: true, force: true});
-  for (const f of ["sundays/zz-ui-check.txt", "parish/sundays/zz-ui-check.txt"]) if (existsSync(join(ROOT, f))) rmSync(join(ROOT, f));
 }
 console.log(steps.join("\n"));
 if (errors.length) { console.error("\n" + errors.join("\n")); process.exit(1); }
