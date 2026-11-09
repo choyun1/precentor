@@ -531,6 +531,14 @@ class Library(unittest.TestCase):
         self.assertEqual(p('Monteverdi-SV_259-Beatus_vir.pdf')['Catalog no.'], 'SV 259')
         self.assertEqual(p('a scan.pdf'), {'Composer': '', 'Title': 'a scan', 'Catalog no.': ''})   # no pattern: title only
         self.assertEqual(p('Requiem (Faure).pdf', '{title} ({composer})')['Composer'], 'Faure')
+        self.assertEqual(p('Gruber-Silent_Night-arr_Paulus.pdf'), {'Composer': 'Gruber, arr. Paulus', 'Title': 'Silent Night', 'Catalog no.': ''})
+        rows = self.rows({'Title': 'Silent Night', 'Composer': 'Stephen Paulus (1949-2014)'}, {'Title': 'Silent Night', 'Composer': 'Clarkson'},
+                         {'Title': 'Adagio for Strings', 'Composer': 'Samuel Barber (arr. Nigel Potts)'})
+        for f in ('Gruber-Silent_Night-arr_Paulus.pdf', 'Gruber-Silent_Night-arr_Clarkson.pdf', 'Barber-Adagio_for_Strings-arr_Potts.pdf'):
+            open(os.path.join(self.d, f), 'wb').write(b'%PDF')
+        self.assertEqual(sorted(self.L.pdfs(rows, {'score folders': self.d}).values()),     # the arranger's Silent Night
+                         ['Barber-Adagio_for_Strings-arr_Potts.pdf', 'Gruber-Silent_Night-arr_Clarkson.pdf', 'Gruber-Silent_Night-arr_Paulus.pdf'])
+        self.assertEqual(self.L.pdfs(rows, {'score folders': self.d})['Silent Night - Stephen Paulus (1949-2014)'], 'Gruber-Silent_Night-arr_Paulus.pdf')
 
     def test_same_title_other_composer(self):
         rows = self.rows({'Title': 'Ave verum corpus', 'Composer': 'William Byrd'})

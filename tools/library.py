@@ -238,7 +238,8 @@ CATALOG_NO = re.compile(r'^((?:Op|BWV|HWV|SWV|SSWV|SV|KV|K|RV|WAB|Hob|D|TWV|BuxW
 
 def parse_name(filename, pattern='{composer}-{title}'):
     """'Fauré-Op_048-Requiem.pdf' -> {Composer: Fauré, Catalog no.: Op. 48, Title: Requiem}. A name that doesn't
-    fit the pattern becomes the title alone."""
+    fit the pattern becomes the title alone. An arranger after the title ('Gruber-Silent_Night-arr_Paulus.pdf')
+    joins the composer: 'Gruber, arr. Paulus'."""
     stem = os.path.splitext(os.path.basename(filename))[0]
     pat = os.path.splitext(pattern)[0] if pattern.lower().endswith('.pdf') else pattern
     rx = re.escape(pat)
@@ -247,6 +248,10 @@ def parse_name(filename, pattern='{composer}-{title}'):
     m = re.fullmatch(rx, stem)
     got = {k: v for k, v in (m.groupdict() if m else {'title': stem}).items()}
     out = {'Composer': got.get('composer', ''), 'Title': got.get('title', stem), 'Catalog no.': got.get('catalog', '')}
+    a = re.search(r'[-_]arr[._]+([^-]+)$', out['Title'])
+    arranger = a.group(1) if a and a.start() else ''
+    if arranger:
+        out['Title'] = out['Title'][:a.start()]
     if not out['Catalog no.']:
         c = CATALOG_NO.match(out['Title'])
         if c:
@@ -260,6 +265,9 @@ def parse_name(filename, pattern='{composer}-{title}'):
     for k in out:
         out[k] = re.sub(r'\s+', ' ', out[k].replace('_', ' ')).strip()
     out['Composer'] = re.sub(r'\s+([A-Z])$', r', \1', out['Composer'])        # Thomson_R -> Thomson, R
+    if arranger:
+        arr = re.sub(r'\s+([A-Z])$', r' (\1)', re.sub(r'\s+', ' ', arranger.replace('_', ' ')).strip())
+        out['Composer'] = f"{out['Composer']}, arr. {arr}" if out['Composer'] else 'arr. ' + arr
     return out
 
 
@@ -315,6 +323,16 @@ def apply_moves(rows, moved):
     return rows
 
 
+def _comps(composer):
+    """The composer's surname and the arranger's: 'Gruber, arr. Paulus' -> {'gruber', 'paulus'}"""
+    text = composer or ''
+    a = re.search(r'\barr\.?\s+(.+)$', text)
+    out = {_comp(text[:a.start()].rstrip(' ,('))} if a else {_comp(text)}
+    if a:
+        out.add(_comp(a.group(1)))
+    return out - {''}
+
+
 def _comp(composer):
     """'Thomas Tallis (c. 1505-1585)', 'Tallis', 'Thomson, R' -> the surname, for matching names to files."""
     name = re.sub(r'\(.*?\)', '', composer or '').strip()
@@ -337,13 +355,13 @@ def pdfs(rows=None, s=None):
         if r['File'] and score_path(r['File'], s):
             out[piece(r)] = r['File']
             continue
-        t, c = norm(r['Title']), _comp(r['Composer'])
+        t, c = norm(r['Title']), _comps(r['Composer'])
         nos = catalog_nos(r['Catalog no.'] + ' ' + r['Title'])
         if len(t) < 4:
             continue
         for f, d, fnos in found:
             ft = norm(d['Title'])
-            if c and d['Composer'] and _comp(d['Composer']) != c:
+            if c and d['Composer'] and not c & _comps(d['Composer']):
                 continue
             if nos and fnos and not nos & fnos:          # the same title, another work: BWV 553 is not BWV 531
                 continue
