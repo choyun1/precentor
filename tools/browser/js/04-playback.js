@@ -1,10 +1,10 @@
 // ---------- playback ----------
-// Each note is an organ pipe: an 8' principal (a steady tone, the fundamental strong with a few softer upper
-// partials), a little wind "chiff" as it speaks, and a small room around it. A double chant breathes between
-// its halves.
+// Each voice is a flute: a soft, nearly pure tone with a little breath and a gentle vibrato. Each half of a
+// chant is slurred, so a voice is one breath that moves from note to note (a repeated note gets a light
+// tongue); a double chant breathes between its halves.
 let audio = null, playing = null, playId = 0;     // playId: which playback is current, so an old one's timer can't stop a new one
-let principal = null, room = null;
-const BREATH = 0.25;                              // the rest between a double chant's halves, in whole notes
+let flute = null, room = null, breathNoise = null;
+const BREATH = 0.1;                               // the rest between a double chant's halves, in whole notes
 function stopPlay() { playId++; if (playing) { playing.forEach(o => { try { o.stop(); } catch (e) {} }); playing = null; } document.querySelectorAll(".play").forEach(b => b.textContent = "▶ Play"); }
 function play(id, btn, shift = 0) {
   const v = shift ? Object.fromEntries(Object.entries(C[id].voices).map(([k, evs]) => [k, evs.map(([m, a, b]) => [m + shift, a, b])])) : C[id].voices;
@@ -16,41 +16,65 @@ function withBreath(evs, half) {
   if (half == null) return evs;
   return evs.map(([m, st, du]) => st >= half - 1e-6 ? [m, st + BREATH, du] : [m, st, du]);
 }
-function organSetup() {
-  // partials of a principal: the 2nd and 3rd present, the rest fading (amplitudes, from the fundamental up)
-  const amp = [0, 1, .42, .24, .12, .08, .05, .035, .02];
-  principal = audio.createPeriodicWave(new Float32Array(amp.length), new Float32Array(amp));
-  // a small stone room: 1.6 s of decaying noise as the impulse
-  const len = Math.floor(audio.sampleRate * 1.6), buf = audio.createBuffer(2, len, audio.sampleRate);
-  for (let ch = 0; ch < 2; ch++) { const d = buf.getChannelData(ch); for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3.2); }
+// a voice's notes as slurs: runs of notes each starting as the one before ends (a chord's notes go in runs of their own)
+function slurs(evs) {
+  const runs = [];
+  [...evs].sort((x, y) => x[1] - y[1]).forEach(e => {
+    const r = runs.find(r => { const l = r[r.length - 1]; return Math.abs(l[1] + l[2] - e[1]) < 1e-6; });
+    if (r) r.push(e); else runs.push([e]);
+  });
+  return runs;
+}
+function soundSetup() {
+  const amp = [0, 1, .18, .06, .025, .01];        // a flute: the fundamental, and only a trace of the partials above
+  flute = audio.createPeriodicWave(new Float32Array(amp.length), new Float32Array(amp));
+  const len = Math.floor(audio.sampleRate * 1.8), buf = audio.createBuffer(2, len, audio.sampleRate);   // a small stone room
+  for (let ch = 0; ch < 2; ch++) { const d = buf.getChannelData(ch); for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3); }
   room = buf;
+  const n = audio.createBuffer(1, audio.sampleRate * 2, audio.sampleRate), d = n.getChannelData(0);    // breath: 2 s of noise, looped
+  for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+  breathNoise = n;
 }
 function playVoices(voices, btn, half = null) {
   if (playing) { const was = btn.textContent.startsWith("■"); stopPlay(); if (was) return; }
   audio = audio || new (window.AudioContext || window.webkitAudioContext)();
-  if (!principal) organSetup();
+  if (!flute) soundSetup();
   const wn = 2.09;                                // seconds per whole note (raise to slow down)
-  const t0 = audio.currentTime + 0.08, out = audio.createGain(); out.gain.value = 0.16; out.connect(audio.destination);
-  const lp = audio.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 3200; lp.Q.value = 0.5;
+  const t0 = audio.currentTime + 0.1, out = audio.createGain(); out.gain.value = 0.17; out.connect(audio.destination);
+  const lp = audio.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 3600; lp.Q.value = 0.5;
   const dry = audio.createGain(), wet = audio.createGain(), verb = audio.createConvolver();
-  dry.gain.value = 0.8; wet.gain.value = 0.28; verb.buffer = room;
+  dry.gain.value = 0.8; wet.gain.value = 0.3; verb.buffer = room;
   lp.connect(dry); dry.connect(out); lp.connect(verb); verb.connect(wet); wet.connect(out);
+  const hz = m => 440 * Math.pow(2, (m - 69) / 12);   // midi 69 = A4 = 440 Hz
   playing = []; let end = 0;
   Object.entries(voices).forEach(([v, evs]) => {
     if (v === "descant") return;
-    withBreath(evs, half).forEach(([m, st, du]) => {
-      const f = 440 * Math.pow(2, (m - 69) / 12), a = t0 + st * wn, b = a + du * wn;   // midi 69 = A4 = 440 Hz
+    slurs(withBreath(evs, half)).forEach(run => {
+      const a = t0 + run[0][1] * wn, last = run[run.length - 1], b = t0 + (last[1] + last[2]) * wn;
       end = Math.max(end, b);
-      // the pipe: speaks in ~50 ms, holds steady, and stops in ~70 ms
-      const g = audio.createGain(); g.gain.setValueAtTime(0, a); g.gain.linearRampToValueAtTime(1, a + 0.05);
-      g.gain.setValueAtTime(1, Math.max(a + 0.05, b - 0.07)); g.gain.linearRampToValueAtTime(0, b); g.connect(lp);
-      const o = audio.createOscillator(); o.setPeriodicWave(principal); o.frequency.value = f;
-      o.detune.value = (Math.random() - 0.5) * 4;  // pipes are never quite in tune with each other
-      o.connect(g); o.start(a); o.stop(b + 0.02); playing.push(o);
-      // chiff: a soft breath of the octave as the pipe speaks
-      const c = audio.createOscillator(), cg = audio.createGain(); c.type = "sine"; c.frequency.value = f * 2;
-      cg.gain.setValueAtTime(0, a); cg.gain.linearRampToValueAtTime(0.22, a + 0.015); cg.gain.exponentialRampToValueAtTime(0.001, a + 0.09);
-      c.connect(cg); cg.connect(g); c.start(a); c.stop(a + 0.1); playing.push(c);
+      // the breath that carries the slur: swells in, holds (a soft tongue on a repeated note), and dies away
+      const g = audio.createGain(); g.connect(lp);
+      g.gain.setValueAtTime(0, a); g.gain.linearRampToValueAtTime(1, a + 0.08);
+      const o = audio.createOscillator(); o.setPeriodicWave(flute); o.frequency.setValueAtTime(hz(run[0][0]), a);
+      run.forEach(([m, st], i) => {
+        if (!i) return;
+        const t = t0 + st * wn;
+        if (m === run[i - 1][0]) {               // the same note again: tongue it
+          g.gain.setValueAtTime(1, t - 0.04); g.gain.linearRampToValueAtTime(0.45, t); g.gain.linearRampToValueAtTime(1, t + 0.05);
+        } else o.frequency.setTargetAtTime(hz(m), t, 0.012);   // a slur: glide to the next note in a few ms
+      });
+      g.gain.setValueAtTime(1, Math.max(a + 0.08, b - 0.1)); g.gain.linearRampToValueAtTime(0, b);
+      // vibrato, coming in after the note has spoken
+      const lfo = audio.createOscillator(), depth = audio.createGain(); lfo.frequency.value = 4.8 + Math.random() * 0.6;
+      depth.gain.setValueAtTime(0, a); depth.gain.linearRampToValueAtTime(0, a + 0.25); depth.gain.linearRampToValueAtTime(9, a + 0.8);   // cents
+      lfo.connect(depth); depth.connect(o.detune);
+      o.connect(g); o.start(a); o.stop(b + 0.02); lfo.start(a); lfo.stop(b + 0.02); playing.push(o, lfo);
+      // air in the tone: noise around the first note's pitch, strongest as it speaks
+      const air = audio.createBufferSource(), bp = audio.createBiquadFilter(), ag = audio.createGain();
+      air.buffer = breathNoise; air.loop = true; bp.type = "bandpass"; bp.frequency.value = hz(run[0][0]) * 2; bp.Q.value = 1.2;
+      ag.gain.setValueAtTime(0, a); ag.gain.linearRampToValueAtTime(0.5, a + 0.03); ag.gain.exponentialRampToValueAtTime(0.06, a + 0.2);
+      ag.gain.setValueAtTime(0.06, Math.max(a + 0.2, b - 0.1)); ag.gain.linearRampToValueAtTime(0, b);
+      air.connect(bp); bp.connect(ag); ag.connect(lp); air.start(a); air.stop(b + 0.02); playing.push(air);
     });
   });
   btn.textContent = "■ Stop";
