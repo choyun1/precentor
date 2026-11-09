@@ -783,6 +783,19 @@ class Server(unittest.TestCase):
         with mock.patch.dict(serve.SERVING, {}, clear=True):
             self.assertFalse(serve.code_changed())                       # not started by main(): nothing to compare
 
+    def test_the_page_is_never_served_from_an_old_copy(self):
+        """After a rebuild the browser must fetch data.js again (an old one played chants without their breaths)."""
+        import http.server, threading, urllib.request, serve
+        style = os.path.join(ROOT, 'style', 'psalm-style.ily')
+        httpd = http.server.ThreadingHTTPServer(('127.0.0.1', 0), serve.Handler)
+        threading.Thread(target=httpd.serve_forever, daemon=True).start()
+        try:
+            with urllib.request.urlopen(f'http://127.0.0.1:{httpd.server_port}/style/psalm-style.ily') as r:
+                self.assertEqual(r.headers['Cache-Control'], 'no-cache')
+                self.assertTrue(os.path.exists(style))
+        finally:
+            httpd.shutdown(); httpd.server_close()
+
     def test_a_restart_is_a_fresh_process_not_one_inside_the_old(self):
         import serve
         from unittest import mock
