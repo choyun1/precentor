@@ -43,7 +43,7 @@ async function editMusic(name, after, opts = {}) {
   const mine = opts.service ? (B.music || {})[name] || {} : null, own = JSON.parse(JSON.stringify(j.parts));
   if (mine) j.parts.voices.forEach(v => { if (v.var in mine) Object.assign(v, mine[v.var] ? {start: mine[v.var].start, body: mine[v.var].body} : {body: ""}); });
   Object.assign(ME, {name, parts: j.parts, own: opts.service ? own : null, service: !!opts.service,
-                     img: "", problems: [], error: "", voices: null, half: null, isNew: !j.exists, after: after || null, details: null});
+                     img: "", problems: [], error: "", voices: null, phrases: null, isNew: !j.exists, after: after || null, details: null});
   drawMusicEditor(); dlg.classList.add("wide"); if (!dlg.open) dlg.showModal();
   previewMusic();
 }
@@ -94,7 +94,7 @@ async function previewMusic() {
   try { j = await post("/api/chant/preview", {name: ME.name, parts, credit: parts.credit}); } catch (e) { j = {ok: false, error: "the launcher didn't answer"}; }
   ME.parts = parts;
   Object.assign(ME, {img: j.img || ME.img, error: j.ok ? "" : (j.error || "could not draw it"), problems: j.problems || [], voices: j.voices || ME.voices,
-                     double: j.double, half: j.half});
+                     double: j.double, phrases: j.phrases});
   if ($("#me-pic")) $("#me-pic").innerHTML = musicPicture();
   if (state) state.textContent = "";
 }
@@ -110,7 +110,7 @@ function useForService() {
   const after = ME.after; dlg.close();
   if (after) after();
 }
-function playEdited(btn) { if (ME.voices) playVoices(ME.voices, btn, ME.half); }
+function playEdited(btn) { if (ME.voices) playVoices(ME.voices, btn, ME.phrases); }
 async function saveMusic() {
   const parts = editedParts();
   if (ME.details) Object.assign(ME.details, {Key: catalogKey(parts.key.tonic), Mode: parts.key.mode[0].toUpperCase() + parts.key.mode.slice(1),

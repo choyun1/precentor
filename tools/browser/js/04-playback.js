@@ -2,22 +2,30 @@
 // Each voice is an 8' principal: a steady organ tone, the fundamental strong with a few softer upper partials,
 // with a soft chiff of the octave as each note speaks, in a small room; the low end is trimmed and the melody sits a little forward so
 // the four parts stay clear. Each half of a chant is played legato: a voice moves from note to note with no gap
-// (a repeated note is re-struck), and a double chant breathes between its halves.
+// (a repeated note is re-struck); a double chant breathes between its halves, and a little at each mediant.
 let audio = null, playing = null, playId = 0;     // playId: which playback is current, so an old one's timer can't stop a new one
 let principal = null, room = null;
-const BREATH = 0.07;                              // the rest between a double chant's halves, in whole notes
-const LIFT = 0.05;                                // and how much earlier the first half's last note lets go, for the breath
+// the breaths, in whole notes: rest is the time added before the next phrase, lift how much earlier the note before lets go
+const BREATH = {rest: 0.07, lift: 0.05};          // between a double chant's halves
+const CATCH = {rest: 0.015, lift: 0.03};          // at a mediant (each quarter of a double, the middle of a single): a lift of the hands
 function stopPlay() { playId++; if (playing) { playing.forEach(o => { try { o.stop(); } catch (e) {} }); playing = null; } document.querySelectorAll(".play").forEach(b => b.textContent = "▶ Play"); }
 function play(id, btn, shift = 0) {
   const v = shift ? Object.fromEntries(Object.entries(C[id].voices).map(([k, evs]) => [k, evs.map(([m, a, b]) => [m + shift, a, b])])) : C[id].voices;
-  playVoices(v, btn, C[id].half);
+  playVoices(v, btn, C[id].phrases);
 }
 function playTone(name, btn) { playVoices((D.tones || []).find(t => t.name === name).voices, btn); }
-// the times of a voice's notes with a breath before the second half (half: when it starts, in whole notes)
-function withBreath(evs, half) {
-  if (half == null) return evs;
-  return evs.map(([m, st, du]) => st >= half - 1e-6 ? [m, st + BREATH, du]
-                                 : Math.abs(st + du - half) < 1e-6 ? [m, st, Math.max(du / 2, du - LIFT)] : [m, st, du]);
+// the times of a voice's notes with a breath before each phrase (phrases: when each after the first starts, in whole notes)
+function withBreath(evs, phrases) {
+  if (!phrases || !phrases.length) return evs;
+  const double = phrases.length >= 3, bs = phrases.map((t, i) => ({t, ...(double && i === 1 ? BREATH : CATCH)}));
+  return evs.map(([m, st, du]) => {
+    let shift = 0, d = du;
+    bs.forEach(b => {
+      if (st >= b.t - 1e-6) shift += b.rest;
+      else if (Math.abs(st + du - b.t) < 1e-6) d = Math.max(du / 2, du - b.lift);
+    });
+    return [m, st + shift, d];
+  });
 }
 // a voice's notes as slurs: runs of notes each starting as the one before ends (a chord's notes go in runs of their own)
 function slurs(evs) {
@@ -35,7 +43,7 @@ function soundSetup() {
   for (let ch = 0; ch < 2; ch++) { const d = buf.getChannelData(ch); for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3); }
   room = buf;
 }
-function playVoices(voices, btn, half = null) {
+function playVoices(voices, btn, phrases = null) {
   if (playing) { const was = btn.textContent.startsWith("■"); stopPlay(); if (was) return; }
   audio = audio || new (window.AudioContext || window.webkitAudioContext)();
   if (!principal) soundSetup();
@@ -54,7 +62,7 @@ function playVoices(voices, btn, half = null) {
   Object.entries(voices).forEach(([v, evs]) => {
     if (v === "descant") return;
     const level = /^(S|Unison)_/.test(v) || v === "chant" ? 1 : /^B_/.test(v) ? 0.6 : 0.68;   // the tune forward, the bass not heavy
-    slurs(withBreath(evs, half)).forEach(run => {
+    slurs(withBreath(evs, phrases)).forEach(run => {
       const a = t0 + run[0][1] * wn, last = run[run.length - 1], b = t0 + (last[1] + last[2]) * wn;
       end = Math.max(end, b);
       // the pipe speaks in ~50 ms, holds, and stops in ~70 ms; within a half it only changes note

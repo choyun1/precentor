@@ -134,14 +134,15 @@ class Chants(unittest.TestCase):
         self.assertEqual(build.load_music('Attwood-1 up 1')['key'][2], 'A')
 
     def test_playback_notes(self):
-        """Play's notes are midi numbers (middle C = 60), and a double chant says where its second half starts."""
+        """Play's notes are midi numbers (middle C = 60), and a chant says where each phrase after the first starts."""
         import chantinfo
         d = chantinfo.info(os.path.join(ROOT, 'chants', 'Alcock-2.ly'))
         self.assertEqual(d['range'], ['D4', 'D5'])
         self.assertEqual(min(m for m, _, _ in d['voices']['S_notes']), 62)       # D4
         self.assertTrue(d['double'])
-        self.assertEqual(d['half'], 3.5)                                          # after 7 bars of semibreves
-        self.assertIsNone(chantinfo.info(os.path.join(ROOT, 'chants', 'Alcock-7.ly'))['half'])   # a single
+        self.assertEqual(len(d['phrases']), 3)
+        self.assertEqual(d['phrases'][1], 3.5)                                    # the second half: after 7 bars of semibreves
+        self.assertEqual(len(chantinfo.info(os.path.join(ROOT, 'chants', 'Alcock-7.ly'))['phrases']), 1)   # a single
 
     def test_tone_pitch(self):
         """A psalm tone's C line plays as middle C (midi 60)."""
