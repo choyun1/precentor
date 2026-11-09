@@ -143,7 +143,7 @@ async function libOpen(i) {
 const LIBV = {};
 function libForm(id, r, v, organ) {
   const [t, comp] = splitPiece(v || ""), m = comp.match(/^(.*?)\s*\(([^)]*\d[^)]*)\)\s*$/);
-  const x = r || {Title: t, Composer: m ? m[1] : comp, Years: m ? m[2] : "", Season: daySeason(), "Used as": organ ? "organ" : ""};
+  const x = r || {Title: t, Composer: m ? m[1] : comp, Years: m ? m[2] : "", Season: daySeason(), Voicing: organ ? "organ" : ""};
   const opt = (list, cur, names) => list.map(y => `<option value="${esc(y)}" ${y === cur ? "selected" : ""}>${esc(names ? names[y] || y : y || "")}</option>`).join("");
   const box = (k, label, attrs = "") => `<label>${label} <input type="text" id="l${k}-${id}" value="${esc(x[LIBF[k]] || "")}" ${attrs}></label>`;
   const pdf = LIB.folders && !(r && libPdf(r));
