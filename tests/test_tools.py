@@ -587,6 +587,27 @@ class Library(unittest.TestCase):
         self.L.place_pdf(r, b'%PDF', s)
         self.assertTrue(os.path.exists(os.path.join(self.d, 'Sacred', 'Byrd-Ave_verum.pdf')))
 
+    def test_a_plugin_adds_to_the_library(self):
+        from unittest import mock
+        import plugins, types
+        lib = os.path.join(self.d, 'Library'); os.makedirs(lib)
+        for f in ('Bach-BWV_0645-Wachet_auf.pdf', 'New-Piece.pdf'):
+            open(os.path.join(lib, f), 'wb').write(b'%PDF')
+        def library(rows):                               # a music library kept some other way
+            for r in rows:
+                r['Season'] = 'holy_week'
+            return rows + self.rows({'Title': 'Wachet auf', 'Composer': 'Bach', 'File': 'Bach-BWV_0645-Wachet_auf.pdf', 'Voicing': 'organ', 'From': 'tags'})
+        mine = types.SimpleNamespace(library=library, library_files=lambda: ['Library/Bach-BWV_0645-Wachet_auf.pdf'])
+        broken = types.SimpleNamespace(library=lambda rows: 1 / 0)
+        rows = self.rows({'Title': 'Ave verum corpus', 'Composer': 'Byrd', 'Season': 'lent'})
+        with mock.patch.object(plugins, 'modules', return_value={'mine': mine, 'broken': broken}):
+            got = self.L.shown(rows)
+            self.assertEqual([(r['Title'], r['Season']) for r in got], [('Ave verum corpus', 'holy_week'), ('Wachet auf', '')])
+            self.assertEqual(rows[0]['Season'], 'lent')                   # the catalog itself is left alone
+            self.assertEqual([x['File'] for x in self.L.scan(rows, {'score folders': lib})['new']], ['New-Piece.pdf'])
+        with mock.patch.object(plugins, 'modules', return_value={}):
+            self.assertEqual(self.L.shown(rows), rows)
+
     def test_dates_with_a_dash(self):
         self.assertEqual(self.L.split_piece('Song for Athene - John Tavener (1944 - 2013)'),
                          ('Song for Athene', 'John Tavener', '1944-2013'))

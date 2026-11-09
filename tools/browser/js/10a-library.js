@@ -201,7 +201,7 @@ function renderLibrary() {
     return;
   }
   const q = normT(LV.q), real = LIB.rows.filter(libReal);
-  const hits = real.filter(r => (!LV.only || libFor(r) === LV.only) && (!q || normT(libPiece(r) + " " + r.Occasion + " " + r.Voicing + " " + r.Location + " " + (SEASON_NAMES[r.Season] || "")).includes(q)))
+  const hits = real.filter(r => (!LV.only || libFor(r) === LV.only) && (!q || normT(libPiece(r) + " " + r.Occasion + " " + r.Voicing + " " + r.Location + " " + (r.Tags || "") + " " + (SEASON_NAMES[r.Season] || "")).includes(q)))
     .sort(libCompare);
   const where = hits.some(r => libWhere(r)), date = B.date && SERVER ? B.date : "", first = LV.levels[0];
   const cols = [["title", "Title"], ["composer", "Composer"], ["for", "For"], ["season", "Season"], ...(where ? [["where", "Where"]] : []), ["sung", "Sung"]];
@@ -224,7 +224,7 @@ function renderLibrary() {
         <p class="hint" style="margin:6px 0 0">${hits.length === real.length ? real.length + " pieces" : hits.length + " of " + real.length + " pieces"}${Object.keys(LIB.pdfs || {}).length ? ` · ${Object.keys(LIB.pdfs).length} with a PDF on this computer` : ""}</p></div>
       ${libSortControl()}</div>
     <div id="libtable">${rows ? `<table class="libtable"><tr>${cols.map(th).join("")}</tr>${rows}</table>` : '<p class="hint">Nothing matches.</p>'}</div>
-    <p class="hint" style="margin:8px 0 0">${date ? `“+ service” puts a piece in the first empty anthem slot (organ music: the prelude or postlude) of the service for ${esc(date)} in the Service planner. ` : ""}Organ or choir comes from a piece's Voicing (“organ” alone is organ); without one, it's guessed from the title. Kept in ${esc(LIB.where)}.</p>
+    <p class="hint" style="margin:8px 0 0">${date ? `“+ service” puts a piece in the first empty anthem slot (organ music: the prelude or postlude) of the service for ${esc(date)} in the Service planner. ` : ""}Organ or choir comes from a piece's Voicing (“organ” alone is organ); without one, it's guessed from the title. Kept in ${esc(LIB.where)}${LIB.rows.some(r => r.From) ? "; some pieces, seasons and organ music come from a plugin (change them where it reads them)" : ""}.</p>
     ${tools ? `<p style="margin:8px 0 0">${tools}</p>` : ""}${libScanCard()}</div>`;
 }
 function libRefresh() {

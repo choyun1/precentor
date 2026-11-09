@@ -29,6 +29,10 @@ is optional:
     file new pdfs:   {season}/{composer}-{title}.pdf            # where a PDF added in the planner goes
     folder seasons:  Advent = advent, Christmas = christmas, General = any   # a folder suggests a season
     skip folders:    Hymns, Chant_resources
+
+A parish plugin (see tools/plugins.py) can add to what the planner shows: plugin.py's library(rows) gets the
+catalog's rows and returns them changed or added to (say, the seasons from a music library kept some other way),
+and library_files() names the PDFs it looks after. The catalog itself is never changed by them.
 """
 import csv, datetime as dt, os, re, shutil, sys, unicodedata
 
@@ -232,6 +236,33 @@ def from_record(rows=None, repertoire=None):
     return rows, n
 
 
+# ------------------------------------------------------------------ what plugins add
+def shown(rows):
+    """The catalog as the planner shows it: what a parish's plugins make of it (plugin.py's library(rows), say
+    from a music library kept elsewhere). The catalog itself is not changed."""
+    import plugins
+    for name, m in plugins.modules().items():
+        if hasattr(m, 'library'):
+            try:
+                rows = m.library([dict(r) for r in rows])
+            except Exception as e:                       # a broken plugin shouldn't stop the page
+                sys.stderr.write(f'  plugin {name}: library() failed: {e}\n')
+    return rows
+
+
+def plugin_files():
+    """The PDFs a plugin looks after (plugin.py's library_files()), which Look for new PDFs leaves to it."""
+    import plugins
+    out = set()
+    for m in plugins.modules().values():
+        if hasattr(m, 'library_files'):
+            try:
+                out |= {os.path.basename(str(f).replace('\\', '/')).lower() for f in m.library_files()}
+            except Exception:
+                pass
+    return out
+
+
 # ------------------------------------------------------------------ PDFs in the score folders
 CATALOG_NO = re.compile(r'^((?:Op|BWV|HWV|SWV|SSWV|SV|KV|K|RV|WAB|Hob|D|TWV|BuxWV|ZWV|Z|FVB|MWV)\.?_?\d+[a-z]?(?:_\d+)?)-(.+)$', re.I)
 
@@ -303,9 +334,9 @@ def scan(rows=None, s=None):
         if r['File'] and r['File'] not in found:
             elsewhere = [f for f in by_name.get(os.path.basename(r['File']).lower(), []) if f not in have]
             (out['moved'].append([r['File'], elsewhere[0]]) if len(elsewhere) == 1 else out['missing'].append(r['File']))
-    moved_to = {b for _, b in out['moved']}
+    moved_to, theirs = {b for _, b in out['moved']}, plugin_files()
     for f in found:
-        if f in have or f in moved_to:
+        if f in have or f in moved_to or os.path.basename(f).lower() in theirs:      # a plugin looks after it
             continue
         top = f.split('/')[0].lower() if '/' in f else ''
         draft = {c: '' for c in COLUMNS} | parse_name(f, pattern) | {'Format': 'PDF', 'File': f, 'Season': seasons.get(top, ''),
@@ -443,13 +474,17 @@ def folder_status(s=None):
     committed, so the launcher tells it again on each computer (serve.py's /api/ping)."""
     s = settings() if s is None else s
     found = score_folders(s)
-    return {'folders': bool(found), 'pdfs': pdfs(s=s) if found else {},
+    return {'folders': bool(found), 'pdfs': pdfs(shown(read()), s) if found else {},
             'unfound': [] if found else [os.path.expanduser(f) for f in _list(s.get('score folders'), r';')]}
+
+
+def rows_for_page(rows=None):
+    return shown(read() if rows is None else rows)
 
 
 def page_data():
     s = settings()
-    return {'rows': read(), **folder_status(s), 'pdfs': {}, 'seasons': list(SEASONS), 'formats': list(FORMATS),
+    return {'rows': shown(read()), **folder_status(s), 'pdfs': {}, 'seasons': list(SEASONS), 'formats': list(FORMATS),
             'where': os.path.relpath(catalog_file(s), paths.HOME).replace(os.sep, '/')
             if catalog_file(s).startswith(paths.HOME) else catalog_file(s)}
 
