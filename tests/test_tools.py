@@ -624,6 +624,18 @@ class Library(unittest.TestCase):
         with mock.patch.object(plugins, 'modules', return_value={}):
             self.assertEqual(self.L.shown(rows), rows)
 
+    def test_not_music(self):
+        from unittest import mock
+        import lectionary, service
+        with mock.patch.dict(lectionary.PARISH, {'not music': 'SNOW DAY, no service'}):
+            self.assertTrue(all(service.placeholder(x) for x in ('???', 'TBD', 'Snow day', 'SNOW DAY', 'No service.')))
+            self.assertFalse(service.placeholder('Snow - Elgar'))
+            rep = {'organ': [['SNOW DAY', ['2025-02-09']], ['Toccata - Widor', ['2025-03-02']]]}
+            rows, n = self.L.from_record([], rep)
+            self.assertEqual([r['Title'] for r in rows], ['Toccata'])
+        with mock.patch.dict(lectionary.PARISH, {'not music': ''}):
+            self.assertFalse(service.placeholder('SNOW DAY'))       # only where the parish says so
+
     def test_dates_with_a_dash(self):
         self.assertEqual(self.L.split_piece('Song for Athene - John Tavener (1944 - 2013)'),
                          ('Song for Athene', 'John Tavener', '1944-2013'))

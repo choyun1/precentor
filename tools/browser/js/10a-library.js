@@ -76,7 +76,9 @@ function libHint(v) {
 }
 // the PDF of a piece on this computer (the launcher matches the score folders' files to the library: /api/ping)
 const libPdf = r => SERVER && LIB.folders ? (LIB.pdfs || {})[libPiece(r)] || "" : "";
-const libReal = r => !/^(|tbd|tba)$/i.test(String(r.Title || "").replace(/[\s?.\-–—]/g, ""));   // not "???" or "TBD"
+// not "???" or "TBD", nor a parish's "not music:" (parish.txt), such as SNOW DAY
+const NOT_MUSIC = new Set(["", "tbd", "tba"].concat((SV.notMusic || []).map(w => w.toLowerCase().replace(/[\s?.\-–—]/g, ""))));
+const libReal = r => !NOT_MUSIC.has(String(r.Title || "").toLowerCase().replace(/[\s?.\-–—]/g, ""));
 async function libOpen(i) {
   const j = await post("/api/score", {file: libPdf(LIB.rows[i])});
   if (!j.ok) alert(j.error || "could not open it");
@@ -223,9 +225,9 @@ function renderLibrary() {
         ${nOrgan ? `<div class="seg" style="max-width:340px;margin-top:6px">${seg("", "All")}${seg("choir", "Choir")}${seg("organ", "Organ")}</div>` : ""}
         <p class="hint" style="margin:6px 0 0">${hits.length === real.length ? real.length + " pieces" : hits.length + " of " + real.length + " pieces"}${Object.keys(LIB.pdfs || {}).length ? ` · ${Object.keys(LIB.pdfs).length} with a PDF on this computer` : ""}</p></div>
       ${libSortControl()}</div>
+    ${tools ? `<p style="margin:0 0 8px">${tools}</p>` : ""}${libScanCard()}
     <div id="libtable">${rows ? `<table class="libtable"><tr>${cols.map(th).join("")}</tr>${rows}</table>` : '<p class="hint">Nothing matches.</p>'}</div>
-    <p class="hint" style="margin:8px 0 0">${date ? `“+ service” puts a piece in the first empty anthem slot (organ music: the prelude or postlude) of the service for ${esc(date)} in the Service planner. ` : ""}Organ or choir comes from a piece's Voicing (“organ” alone is organ); without one, it's guessed from the title. Kept in ${esc(LIB.where)}${LIB.rows.some(r => r.From) ? "; some pieces, seasons and organ music come from a plugin (change them where it reads them)" : ""}.</p>
-    ${tools ? `<p style="margin:8px 0 0">${tools}</p>` : ""}${libScanCard()}</div>`;
+    <p class="hint" style="margin:8px 0 0">${date ? `“+ service” puts a piece in the first empty anthem slot (organ music: the prelude or postlude) of the service for ${esc(date)} in the Service planner. ` : ""}Organ or choir comes from a piece's Voicing (“organ” alone is organ); without one, it's guessed from the title. Kept in ${esc(LIB.where)}${LIB.rows.some(r => r.From) ? "; some pieces, seasons and organ music come from a plugin (change them where it reads them)" : ""}.</p></div>`;
 }
 function libRefresh() {
   const pos = $("#libq") ? $("#libq").selectionStart : null;
@@ -258,7 +260,7 @@ function libScanCard() {
   const s = B.libScan; if (!s) return "";
   if (!s.new.length && !s.moved.length && !s.missing.length) return `<p class="hint">The score folders and the library agree: nothing new.</p>`;
   const opt = cur => `<option value="">any time</option>` + LIB.seasons.map(x => `<option value="${x}" ${x === cur ? "selected" : ""}>${esc(SEASON_NAMES[x] || x)}</option>`).join("");
-  return `<div style="margin-top:10px"><b style="font-weight:normal">In the score folders:</b>
+  return `<div style="margin:10px 0"><b style="font-weight:normal">In the score folders:</b>
     ${s.new.length ? `<p class="hint" style="margin:4px 0">${s.new.length} new PDFs, read from their names: check them, then keep.</p>
       <table class="libtable"><tr><th></th><th>Composer</th><th>Title</th><th>Season</th><th>File</th></tr>${s.new.map((r, i) => `<tr>
         <td><input type="checkbox" id="lk-${i}" checked></td><td><input type="text" id="lkc-${i}" value="${esc(r.Composer)}"></td>
