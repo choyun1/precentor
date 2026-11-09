@@ -1,6 +1,6 @@
 // ---------- playback ----------
 // Each voice is an 8' principal: a steady organ tone, the fundamental strong with a few softer upper partials,
-// speaking cleanly (no chiff) in a small room; the low end is trimmed and the melody sits a little forward so
+// with a soft chiff of the octave as each note speaks, in a small room; the low end is trimmed and the melody sits a little forward so
 // the four parts stay clear. Each half of a chant is played legato: a voice moves from note to note with no gap
 // (a repeated note is re-struck), and a double chant breathes between its halves.
 let audio = null, playing = null, playId = 0;     // playId: which playback is current, so an old one's timer can't stop a new one
@@ -27,7 +27,7 @@ function slurs(evs) {
   return runs;
 }
 function soundSetup() {
-  const amp = [0, 1, .42, .24, .12, .08, .05, .035, .02];   // a principal: the 2nd and 3rd partials present, the rest fading
+  const amp = [0, 1, .3, .12, .05, .025, .012];   // a round principal: the fundamental, the 2nd and 3rd softly, little above
   principal = audio.createPeriodicWave(new Float32Array(amp.length), new Float32Array(amp));
   const len = Math.floor(audio.sampleRate * 1.2), buf = audio.createBuffer(2, len, audio.sampleRate);   // a small stone room
   for (let ch = 0; ch < 2; ch++) { const d = buf.getChannelData(ch); for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3); }
@@ -39,10 +39,10 @@ function playVoices(voices, btn, half = null) {
   if (!principal) soundSetup();
   const wn = 2.09;                                // seconds per whole note (raise to slow down)
   const t0 = audio.currentTime + 0.1, out = audio.createGain(); out.gain.value = 0.17; out.connect(audio.destination);
-  const lp = audio.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 7000; lp.Q.value = 0.5;
+  const lp = audio.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 4500; lp.Q.value = 0.5;
   const hp = audio.createBiquadFilter(); hp.type = "highpass"; hp.frequency.value = 140; hp.Q.value = 0.6;    // no boom below the bass's fundamentals
   const lo = audio.createBiquadFilter(); lo.type = "lowshelf"; lo.frequency.value = 300; lo.gain.value = -5;   // and less of the muddy low mid
-  const hi = audio.createBiquadFilter(); hi.type = "peaking"; hi.frequency.value = 2500; hi.Q.value = 0.8; hi.gain.value = 3;   // a little presence
+  const hi = audio.createBiquadFilter(); hi.type = "peaking"; hi.frequency.value = 2500; hi.Q.value = 0.8; hi.gain.value = 0;   // (no added presence: the tone stays round)
   hp.connect(lo); lo.connect(hi); hi.connect(lp);
   const dry = audio.createGain(), wet = audio.createGain(), verb = audio.createConvolver();
   dry.gain.value = 0.85; wet.gain.value = 0.14; verb.buffer = room;
@@ -60,9 +60,17 @@ function playVoices(voices, btn, half = null) {
       g.gain.setValueAtTime(0, a); g.gain.linearRampToValueAtTime(1, a + 0.05);
       const o = audio.createOscillator(); o.setPeriodicWave(principal); o.frequency.setValueAtTime(hz(run[0][0]), a);
       o.detune.value = (Math.random() - 0.5) * 4;  // pipes are never quite in tune with each other
+      // chiff: a soft breath of the octave as the pipe speaks each note
+      const chiff = (m, t) => {
+        const c = audio.createOscillator(), cg = audio.createGain(); c.frequency.value = hz(m) * 2;
+        cg.gain.setValueAtTime(0, t); cg.gain.linearRampToValueAtTime(0.18, t + 0.015); cg.gain.exponentialRampToValueAtTime(0.001, t + 0.09);
+        c.connect(cg); cg.connect(vol); c.start(t); c.stop(t + 0.1); playing.push(c);
+      };
+      chiff(run[0][0], a);
       run.forEach(([m, st], i) => {
         if (!i) return;
         const t = t0 + st * wn;
+        chiff(m, t);
         if (m === run[i - 1][0]) {               // the same note again: lift and re-strike it
           g.gain.setValueAtTime(1, t - 0.05); g.gain.linearRampToValueAtTime(0.1, t - 0.01); g.gain.linearRampToValueAtTime(1, t + 0.04);
         } else o.frequency.setTargetAtTime(hz(m), t, 0.004);   // legato: straight on to the next note
