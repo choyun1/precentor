@@ -6,6 +6,7 @@
 let audio = null, playing = null, playId = 0;     // playId: which playback is current, so an old one's timer can't stop a new one
 let principal = null, room = null;
 const BREATH = 0.07;                              // the rest between a double chant's halves, in whole notes
+const LIFT = 0.05;                                // and how much earlier the first half's last note lets go, for the breath
 function stopPlay() { playId++; if (playing) { playing.forEach(o => { try { o.stop(); } catch (e) {} }); playing = null; } document.querySelectorAll(".play").forEach(b => b.textContent = "▶ Play"); }
 function play(id, btn, shift = 0) {
   const v = shift ? Object.fromEntries(Object.entries(C[id].voices).map(([k, evs]) => [k, evs.map(([m, a, b]) => [m + shift, a, b])])) : C[id].voices;
@@ -15,7 +16,8 @@ function playTone(name, btn) { playVoices((D.tones || []).find(t => t.name === n
 // the times of a voice's notes with a breath before the second half (half: when it starts, in whole notes)
 function withBreath(evs, half) {
   if (half == null) return evs;
-  return evs.map(([m, st, du]) => st >= half - 1e-6 ? [m, st + BREATH, du] : [m, st, du]);
+  return evs.map(([m, st, du]) => st >= half - 1e-6 ? [m, st + BREATH, du]
+                                 : Math.abs(st + du - half) < 1e-6 ? [m, st, Math.max(du / 2, du - LIFT)] : [m, st, du]);
 }
 // a voice's notes as slurs: runs of notes each starting as the one before ends (a chord's notes go in runs of their own)
 function slurs(evs) {
