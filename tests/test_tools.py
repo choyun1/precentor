@@ -1019,5 +1019,42 @@ class History(unittest.TestCase):
         self.assertEqual(shown, ['a.txt'])
 
 
+class PsalmHistory(unittest.TestCase):
+    """A Sunday's own file speaks for its date: the old record and the imported schedule only fill in the rest."""
+    def setUp(self):
+        self.d = tempfile.mkdtemp()
+        for sub in ('sundays', 'legacy', 'schedule'):
+            os.makedirs(os.path.join(self.d, sub))
+
+    def tearDown(self):
+        import shutil
+        shutil.rmtree(self.d)
+
+    def write(self, rel, text):
+        with open(os.path.join(self.d, rel), 'w', encoding='utf-8') as fh:
+            fh.write(text)
+
+    def test_file_wins_over_legacy_and_unsung_file_over_schedule(self):
+        import browser
+        from unittest import mock
+        self.write('sundays/2026-11-01.txt', 'date: 2026-11-01\npsalm: 34:1-10,22\nchant: ElveyG-2\nsung: yes\n')
+        self.write('sundays/2026-11-08.txt', 'date: 2026-11-08\npsalm: 70\nchant: Farrant-1\n')   # not marked sung
+        self.write('legacy/history.csv', 'date,text,verses,chant,note\n2026-10-31,Psalm_147,13-21,Bairstow-1,\n'
+                                         '2026-11-01,Psalm_034,1-11,ElveyG-2,\n')
+        self.write('schedule/schedule.csv', 'date,service,organist,slot,item\n2026-11-08,Pentecost 24,AYC,Psalm,70 ()\n')
+        with mock.patch.object(paths, 'SUNDAYS', os.path.join(self.d, 'sundays')), \
+                mock.patch.object(paths, 'LEGACY_HISTORY', os.path.join(self.d, 'legacy', 'history.csv')), \
+                mock.patch.object(paths, 'HOME', self.d), \
+                mock.patch.object(browser.dt, 'date', mock.Mock(today=lambda: D('2026-11-09'))):
+            rows = browser.history()
+        self.assertEqual([(r['date'], r['verses'], r['source']) for r in rows],
+                         [('2026-10-31', '13-21', 'legacy'), ('2026-11-01', '1-10, 22', 'new')])
+
+    def test_verse_span(self):
+        import browser
+        self.assertEqual(browser.verse_span([1, 2, 3, 22]), '1-3, 22')
+        self.assertEqual(browser.verse_span([5]), '5')
+
+
 if __name__ == '__main__':
     unittest.main()

@@ -63,11 +63,24 @@ def draw(exe, name, out_png, c=None):
 
 
 # ------------------------------------------------------------- history
+def verse_span(vs):
+    """[1, 2, ..., 10, 22] -> '1-10, 22': the verses sung, gaps and all."""
+    runs = []
+    for n in vs:
+        if runs and n == runs[-1][1] + 1:
+            runs[-1][1] = n
+        else:
+            runs.append([n, n])
+    return ', '.join(f'{a}-{b}' if a != b else str(a) for a, b in runs)
+
+
 def history():
-    rows = [dict(r, source='legacy') for r in read_csv(paths.LEGACY_HISTORY)]
+    rows, filed = [], set()                     # filed: the dates a Sunday file speaks for, sung or not
     for path in sorted(glob.glob(os.path.join(paths.SUNDAYS, '[!_]*.txt'))):
         try:
             s = build.parse_sunday(path)
+            if s['date']:
+                filed.add(s['date'][:10])
             if not s['sung'] or not s['date']:
                 continue
             if not s['choir']:                      # no choir: the psalms, said, with no chant
@@ -75,20 +88,22 @@ def history():
                     for path_, take in build.resolve(it['spec']):
                         vs = take or [v['n'] for v in pointed.load(path_)['verses']]
                         rows.append({'date': s['date'], 'text': os.path.basename(path_)[:-4], 'chant': '', 'source': 'new',
-                                     'verses': f'{vs[0]}-{vs[-1]}' if len(vs) > 1 else str(vs[0]), 'note': 'no choir that week'})
+                                     'verses': verse_span(vs), 'note': 'no choir that week'})
                 continue
             for ps in build.plan(s):
                 name = ps['id']
                 for sec in ps['sections']:
                     if sec['chant'] in ('???', '?', ''):
                         continue
-                    vs = sec['verses']
-                    rng = f"{vs[0]['n']}-{vs[-1]['n']}" if len(vs) > 1 else str(vs[0]['n'])
-                    rows.append({'date': s['date'], 'text': name, 'verses': rng, 'chant': sec['chant'],
+                    rows.append({'date': s['date'], 'text': name, 'verses': verse_span([v['n'] for v in sec['verses']]), 'chant': sec['chant'],
                                  'note': s['service'] if s['service'] != 'Eucharist' else '', 'source': 'new'})
         except SystemExit as e:
             sys.stderr.write(f'  skipped {os.path.basename(path)}: {e}\n')
-    rows += schedule_history({r['date'][:10] for r in rows})
+    # a Sunday's file speaks for it: the old record (frozen on the day the files took over) and the imported
+    # schedule fill in only the dates without one (an unsung file waits under "Past Sundays not yet confirmed")
+    legacy = [dict(r, source='legacy') for r in read_csv(paths.LEGACY_HISTORY) if r['date'][:10] not in filed]
+    rows = legacy + rows
+    rows += schedule_history(filed | {r['date'][:10] for r in rows})
     for r in rows:                            # one name per chant: 'Turle-5' was Turle-2 a tone down
         c = r.get('chant') or ''
         if c and not c.startswith('tone:') and c not in ('?', '???'):
@@ -149,7 +164,7 @@ def schedule_history(have):
         for path_, take in segs:
             vs = take or [v['n'] for v in pointed.load(path_)['verses']]
             out.append({'date': r['date'], 'text': os.path.basename(path_)[:-4],
-                        'verses': f'{vs[0]}-{vs[-1]}' if len(vs) > 1 else str(vs[0]),
+                        'verses': verse_span(vs),
                         'chant': chant, 'source': 'schedule',      # no chant: the psalm was said (no choir that week)
                         'note': note if chant else 'no chant setting (no choir that week), from the imported record'})
     return out
@@ -519,6 +534,7 @@ def main():
                        'optional': build.optional_default()},
             'demo': bool(os.environ.get('PRECENTOR_DEMO')),      # the copy on GitHub Pages (.github/workflows/pages.yml)
             'pageSignature': page_signature(),                  # the launcher rebuilds when the code changes
+            'builtOn': dt.date.today().isoformat(),             # and on a new day (a Sunday passes: History, Coming up)
             }
     with open(os.path.join(SITE, 'data.js'), 'w', encoding='utf-8') as fh:
         fh.write('window.PRECENTOR = ' + json.dumps(data, ensure_ascii=False, separators=(',', ':')) + ';\n')

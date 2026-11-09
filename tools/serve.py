@@ -11,7 +11,7 @@ output and the fonts. Opening site/index.html directly still works, without thos
 Each request the page can make is one function below, listed in ROUTES; a parish's plugins add
 their own (tools/plugins.py). Every save is recorded for Undo (tools/history.py).
 """
-import csv, io, http.server, json, os, re, subprocess, sys, threading, urllib.parse, webbrowser
+import csv, datetime as dt, io, http.server, json, os, re, subprocess, sys, threading, urllib.parse, webbrowser
 
 TOOLS = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(TOOLS)
@@ -506,6 +506,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 return self.reply(GETS[u.path](urllib.parse.parse_qs(u.query)))
             except ValueError as e:
                 return self.reply({'error': str(e)}, 400)
+        if u.path == SITE_URL and not REBUILD.locked() and built_before_today():
+            rebuild('on a new day')
         target = os.path.realpath(self.translate_path(u.path))
         if not any(target == os.path.realpath(d) or target.startswith(os.path.realpath(d) + os.sep) for d in SERVED):
             return self.reply({'error': 'not found'}, 404)
@@ -561,6 +563,13 @@ def page_out_of_date():
     return os.path.exists(p) and f'"pageSignature":"{browser.page_signature()}"' not in paths.read(p)
 
 
+def built_before_today():
+    """Whether the page was built on an earlier day: a Sunday may have passed since (its "Mark as sung", the
+    imported record's psalm for it, what's coming up), so it is built again before it is shown."""
+    p = os.path.join(paths.SITE, 'data.js')
+    return os.path.exists(p) and f'"builtOn":"{dt.date.today().isoformat()}"' not in paths.read(p)
+
+
 def main():
     history.ensure()
     if not os.path.exists(os.path.join(paths.SITE, 'data.js')):
@@ -575,6 +584,9 @@ def main():
     if page_out_of_date():
         print('the code has changed since the page was built: building it again…')
         rebuild('after an update')
+    elif built_before_today():
+        print('a new day since the page was built: building it again…')
+        rebuild('on a new day')
     import browser
     SERVING['code'] = browser.page_signature()       # what this launcher is running (see code_changed)
     srv = SERVING['srv'] = Server(('127.0.0.1', PORT), Handler)
