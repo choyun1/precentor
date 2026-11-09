@@ -1,56 +1,92 @@
 // ---------- playback ----------
-// Each note is an organ pipe: an 8' principal (a steady tone, the fundamental strong with a few softer upper
-// partials), a little wind "chiff" as it speaks, and a small room around it. A double chant breathes between
-// its halves.
+// Each voice is an 8' principal: a steady organ tone, the fundamental strong with a few softer upper partials,
+// with a soft chiff of the octave as each note speaks, in a small room; the low end is trimmed and the melody sits a little forward so
+// the four parts stay clear. Each half of a chant is played legato: a voice moves from note to note with no gap
+// (a repeated note is re-struck); a double chant breathes between its halves, and a little at each mediant.
 let audio = null, playing = null, playId = 0;     // playId: which playback is current, so an old one's timer can't stop a new one
 let principal = null, room = null;
-const BREATH = 0.25;                              // the rest between a double chant's halves, in whole notes
+// the breaths, in whole notes: rest is the time added before the next phrase, lift how much earlier the note before lets go
+const BREATH = {rest: 0.055, lift: 0.04};         // between a double chant's halves
+const CATCH = {rest: 0.0128, lift: 0.0255};         // at a mediant (each quarter of a double, the middle of a single): a lift of the hands
 function stopPlay() { playId++; if (playing) { playing.forEach(o => { try { o.stop(); } catch (e) {} }); playing = null; } document.querySelectorAll(".play").forEach(b => b.textContent = "▶ Play"); }
 function play(id, btn, shift = 0) {
   const v = shift ? Object.fromEntries(Object.entries(C[id].voices).map(([k, evs]) => [k, evs.map(([m, a, b]) => [m + shift, a, b])])) : C[id].voices;
-  playVoices(v, btn, C[id].half);
+  playVoices(v, btn, C[id].phrases);
 }
 function playTone(name, btn) { playVoices((D.tones || []).find(t => t.name === name).voices, btn); }
-// the times of a voice's notes with a breath before the second half (half: when it starts, in whole notes)
-function withBreath(evs, half) {
-  if (half == null) return evs;
-  return evs.map(([m, st, du]) => st >= half - 1e-6 ? [m, st + BREATH, du] : [m, st, du]);
+// the times of a voice's notes with a breath before each phrase (phrases: when each after the first starts, in whole notes)
+function withBreath(evs, phrases) {
+  if (!phrases || !phrases.length) return evs;
+  const double = phrases.length >= 3, bs = phrases.map((t, i) => ({t, ...(double && i === 1 ? BREATH : CATCH)}));
+  return evs.map(([m, st, du]) => {
+    let shift = 0, d = du;
+    bs.forEach(b => {
+      if (st >= b.t - 1e-6) shift += b.rest;
+      else if (Math.abs(st + du - b.t) < 1e-6) d = Math.max(du / 2, du - b.lift);
+    });
+    return [m, st + shift, d];
+  });
 }
-function organSetup() {
-  // partials of a principal: the 2nd and 3rd present, the rest fading (amplitudes, from the fundamental up)
-  const amp = [0, 1, .42, .24, .12, .08, .05, .035, .02];
+// a voice's notes as slurs: runs of notes each starting as the one before ends (a chord's notes go in runs of their own)
+function slurs(evs) {
+  const runs = [];
+  [...evs].sort((x, y) => x[1] - y[1]).forEach(e => {
+    const r = runs.find(r => { const l = r[r.length - 1]; return Math.abs(l[1] + l[2] - e[1]) < 1e-6; });
+    if (r) r.push(e); else runs.push([e]);
+  });
+  return runs;
+}
+function soundSetup() {
+  const amp = [0, 1, .3, .12, .05, .025, .012];   // a round principal: the fundamental, the 2nd and 3rd softly, little above
   principal = audio.createPeriodicWave(new Float32Array(amp.length), new Float32Array(amp));
-  // a small stone room: 1.6 s of decaying noise as the impulse
-  const len = Math.floor(audio.sampleRate * 1.6), buf = audio.createBuffer(2, len, audio.sampleRate);
-  for (let ch = 0; ch < 2; ch++) { const d = buf.getChannelData(ch); for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3.2); }
+  const len = Math.floor(audio.sampleRate * 1.2), buf = audio.createBuffer(2, len, audio.sampleRate);   // a small stone room
+  for (let ch = 0; ch < 2; ch++) { const d = buf.getChannelData(ch); for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3); }
   room = buf;
 }
-function playVoices(voices, btn, half = null) {
+function playVoices(voices, btn, phrases = null) {
   if (playing) { const was = btn.textContent.startsWith("■"); stopPlay(); if (was) return; }
   audio = audio || new (window.AudioContext || window.webkitAudioContext)();
-  if (!principal) organSetup();
+  if (!principal) soundSetup();
   const wn = 2.09;                                // seconds per whole note (raise to slow down)
-  const t0 = audio.currentTime + 0.08, out = audio.createGain(); out.gain.value = 0.16; out.connect(audio.destination);
-  const lp = audio.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 3200; lp.Q.value = 0.5;
+  const t0 = audio.currentTime + 0.1, out = audio.createGain(); out.gain.value = 0.17; out.connect(audio.destination);
+  const lp = audio.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 4500; lp.Q.value = 0.5;
+  const hp = audio.createBiquadFilter(); hp.type = "highpass"; hp.frequency.value = 140; hp.Q.value = 0.6;    // no boom below the bass's fundamentals
+  const lo = audio.createBiquadFilter(); lo.type = "lowshelf"; lo.frequency.value = 300; lo.gain.value = -5;   // and less of the muddy low mid
+  const hi = audio.createBiquadFilter(); hi.type = "peaking"; hi.frequency.value = 2500; hi.Q.value = 0.8; hi.gain.value = 0;   // (no added presence: the tone stays round)
+  hp.connect(lo); lo.connect(hi); hi.connect(lp);
   const dry = audio.createGain(), wet = audio.createGain(), verb = audio.createConvolver();
-  dry.gain.value = 0.8; wet.gain.value = 0.28; verb.buffer = room;
+  dry.gain.value = 0.85; wet.gain.value = 0.14; verb.buffer = room;
   lp.connect(dry); dry.connect(out); lp.connect(verb); verb.connect(wet); wet.connect(out);
+  const hz = m => 440 * Math.pow(2, (m - 69) / 12);   // midi 69 = A4 = 440 Hz
   playing = []; let end = 0;
   Object.entries(voices).forEach(([v, evs]) => {
     if (v === "descant") return;
-    withBreath(evs, half).forEach(([m, st, du]) => {
-      const f = 440 * Math.pow(2, (m - 69) / 12), a = t0 + st * wn, b = a + du * wn;   // midi 69 = A4 = 440 Hz
+    const level = /^(S|Unison)_/.test(v) || v === "chant" ? 1 : /^B_/.test(v) ? 0.6 : 0.68;   // the tune forward, the bass not heavy
+    slurs(withBreath(evs, phrases)).forEach(run => {
+      const a = t0 + run[0][1] * wn, last = run[run.length - 1], b = t0 + (last[1] + last[2]) * wn;
       end = Math.max(end, b);
-      // the pipe: speaks in ~50 ms, holds steady, and stops in ~70 ms
-      const g = audio.createGain(); g.gain.setValueAtTime(0, a); g.gain.linearRampToValueAtTime(1, a + 0.05);
-      g.gain.setValueAtTime(1, Math.max(a + 0.05, b - 0.07)); g.gain.linearRampToValueAtTime(0, b); g.connect(lp);
-      const o = audio.createOscillator(); o.setPeriodicWave(principal); o.frequency.value = f;
+      // the pipe speaks in ~50 ms, holds, and stops in ~70 ms; within a half it only changes note
+      const g = audio.createGain(), vol = audio.createGain(); vol.gain.value = level; g.connect(vol); vol.connect(hp);
+      g.gain.setValueAtTime(0, a); g.gain.linearRampToValueAtTime(1, a + 0.05);
+      const o = audio.createOscillator(); o.setPeriodicWave(principal); o.frequency.setValueAtTime(hz(run[0][0]), a);
       o.detune.value = (Math.random() - 0.5) * 4;  // pipes are never quite in tune with each other
+      // chiff: a soft breath of the octave as the pipe speaks each note
+      const chiff = (m, t) => {
+        const c = audio.createOscillator(), cg = audio.createGain(); c.frequency.value = hz(m) * 2;
+        cg.gain.setValueAtTime(0, t); cg.gain.linearRampToValueAtTime(0.18, t + 0.015); cg.gain.exponentialRampToValueAtTime(0.001, t + 0.09);
+        c.connect(cg); cg.connect(vol); c.start(t); c.stop(t + 0.1); playing.push(c);
+      };
+      chiff(run[0][0], a);
+      run.forEach(([m, st], i) => {
+        if (!i) return;
+        const t = t0 + st * wn;
+        chiff(m, t);
+        if (m === run[i - 1][0]) {               // the same note again: lift and re-strike it
+          g.gain.setValueAtTime(1, t - 0.05); g.gain.linearRampToValueAtTime(0.1, t - 0.01); g.gain.linearRampToValueAtTime(1, t + 0.04);
+        } else o.frequency.setTargetAtTime(hz(m), t, 0.004);   // legato: straight on to the next note
+      });
+      g.gain.setValueAtTime(1, Math.max(a + 0.05, b - 0.07)); g.gain.linearRampToValueAtTime(0, b);
       o.connect(g); o.start(a); o.stop(b + 0.02); playing.push(o);
-      // chiff: a soft breath of the octave as the pipe speaks
-      const c = audio.createOscillator(), cg = audio.createGain(); c.type = "sine"; c.frequency.value = f * 2;
-      cg.gain.setValueAtTime(0, a); cg.gain.linearRampToValueAtTime(0.22, a + 0.015); cg.gain.exponentialRampToValueAtTime(0.001, a + 0.09);
-      c.connect(cg); cg.connect(g); c.start(a); c.stop(a + 0.1); playing.push(c);
     });
   });
   btn.textContent = "■ Stop";

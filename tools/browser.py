@@ -523,7 +523,7 @@ def main():
             'range': info['range'], 'rating': int(rating) if rating.isdigit() else None,
             'mood': tags(row.get('Mood')), 'notes': row.get('Notes', ''), 'pins': ['favorite' if x == 'favourite' else x for x in tags(row.get('Pin'))],
             'source': row.get('Source', ''), 'acp': row.get('ACP Psalm', ''),
-            'img': os.path.exists(img), 'voices': info['voices'], 'half': info['half'],
+            'img': os.path.exists(img), 'voices': info['voices'], 'phrases': info['phrases'],
             'private': row['private'],
         })
     label_chants(chants)
