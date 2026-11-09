@@ -23,11 +23,13 @@ def info(path, text=None):
     tonic, mode = c['key'] or ('c', 'major')
     voices = {}
     for v, (notes, sections) in c['voices'].items():
-        ev = []
+        ev, halves = [], []
         for n in notes:
             for h in (n if isinstance(n, list) else [n]):
                 ev.append([h.midi, float(h.start), float(h.dur)])
-        voices[v] = {'events': ev, 'sections': sections}
+                if h.section >= 2:
+                    halves.append(float(h.start))
+        voices[v] = {'events': ev, 'sections': sections, 'half': min(halves) if halves else None}
     melody = voices.get('S_notes') or voices.get('Unison_notes') or next(iter(voices.values()))
     sop = [e[0] for e in melody['events']]
     name = lambda m: NAMES[m % 12] + str(m // 12 - 1)
@@ -35,6 +37,7 @@ def info(path, text=None):
     return {
         'key': k, 'mode': md,
         'double': len(melody['sections']) >= 4,
+        'half': melody['half'] if len(melody['sections']) >= 4 else None,   # where a double's second half starts: Play breathes there
         'range': [name(min(sop)), name(max(sop))] if sop else None,
         'voices': {v: d['events'] for v, d in voices.items()},
     }

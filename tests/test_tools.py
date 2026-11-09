@@ -133,6 +133,21 @@ class Chants(unittest.TestCase):
         self.assertIn('\\transpose d c', c['score'])
         self.assertEqual(build.load_music('Attwood-1 up 1')['key'][2], 'A')
 
+    def test_playback_notes(self):
+        """Play's notes are midi numbers (middle C = 60), and a double chant says where its second half starts."""
+        import chantinfo
+        d = chantinfo.info(os.path.join(ROOT, 'chants', 'Alcock-2.ly'))
+        self.assertEqual(d['range'], ['D4', 'D5'])
+        self.assertEqual(min(m for m, _, _ in d['voices']['S_notes']), 62)       # D4
+        self.assertTrue(d['double'])
+        self.assertEqual(d['half'], 3.5)                                          # after 7 bars of semibreves
+        self.assertIsNone(chantinfo.info(os.path.join(ROOT, 'chants', 'Alcock-7.ly'))['half'])   # a single
+
+    def test_tone_pitch(self):
+        """A psalm tone's C line plays as middle C (midi 60)."""
+        import browser, tones
+        self.assertEqual(browser.tone_voices(tones.tone('VIIa'))['chant'][0][0], 60)   # h on a c3 clef: the C line
+
     def test_held_yahweh(self):
         self.assertIn('\\scs "A"', emit.word_markup('=YAHWEH'))
         self.assertIn('\\scs "S"', emit.word_markup("=GOD'S"))

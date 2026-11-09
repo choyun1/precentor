@@ -352,7 +352,7 @@ def tone_voices(t):
         toks = (f['intonation'] if part == 'mediant' else []) + [f['tenor']] + f['cadence']
         for i, tk in enumerate(toks):
             for j, (letter, flat) in enumerate(tk['notes']):
-                m = tones.to_pitch(letter, t['clef']) - 24 - (1 if flat else 0)    # the C line sounds as middle C
+                m = tones.to_pitch(letter, t['clef']) - 12 - (1 if flat else 0)    # the C line sounds as middle C
                 last = part == 'termination' and i == len(toks) - 1 and j == len(tk['notes']) - 1
                 du = 0.62 if tk is f['tenor'] else (0.42 if last else 0.14)
                 evs.append([m, round(at, 3), du])
@@ -523,7 +523,7 @@ def main():
             'range': info['range'], 'rating': int(rating) if rating.isdigit() else None,
             'mood': tags(row.get('Mood')), 'notes': row.get('Notes', ''), 'pins': ['favorite' if x == 'favourite' else x for x in tags(row.get('Pin'))],
             'source': row.get('Source', ''), 'acp': row.get('ACP Psalm', ''),
-            'img': os.path.exists(img), 'voices': info['voices'],
+            'img': os.path.exists(img), 'voices': info['voices'], 'half': info['half'],
             'private': row['private'],
         })
     label_chants(chants)
