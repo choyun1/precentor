@@ -19,7 +19,7 @@
 #(define dagger-gap 0.35)                      % space between the dagger and the verse number
 
 %% ---------- verse layout ----------
-#(define verse-number-size -2.5)               % font-size step for verse numbers (0 = same as text)
+#(define verse-number-size -1)                 % font-size step for verse numbers (0 = same as text)
 #(define line-spacing 3.55)                    % baseline to baseline within a verse (LilyPond default 3.0)
 #(define verse-gap 0.55)                       % blank space between verses, in text lines (was 1.0 = \null)
 #(define verse-padding 2.9)                    % blank space between verses when each verse is its own block

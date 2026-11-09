@@ -65,9 +65,9 @@ function playVoices(voices, btn, phrases = null) {
     slurs(withBreath(evs, phrases)).forEach(run => {
       const a = t0 + run[0][1] * wn, last = run[run.length - 1], b = t0 + (last[1] + last[2]) * wn;
       end = Math.max(end, b);
-      // the pipe speaks in ~50 ms, holds, and stops in ~70 ms; within a half it only changes note
+      // the pipe speaks in ~30 ms, holds, and stops in ~30 ms; within a phrase it only changes note
       const g = audio.createGain(), vol = audio.createGain(); vol.gain.value = level; g.connect(vol); vol.connect(hp);
-      g.gain.setValueAtTime(0, a); g.gain.linearRampToValueAtTime(1, a + 0.05);
+      g.gain.setValueAtTime(0, a); g.gain.linearRampToValueAtTime(1, a + 0.03);
       const o = audio.createOscillator(); o.setPeriodicWave(principal); o.frequency.setValueAtTime(hz(run[0][0]), a);
       o.detune.value = (Math.random() - 0.5) * 4;  // pipes are never quite in tune with each other
       // chiff: a soft breath of the octave as the pipe speaks each note
@@ -83,9 +83,9 @@ function playVoices(voices, btn, phrases = null) {
         chiff(m, t);
         if (m === run[i - 1][0]) {               // the same note again: lift and re-strike it
           g.gain.setValueAtTime(1, t - 0.05); g.gain.linearRampToValueAtTime(0.1, t - 0.01); g.gain.linearRampToValueAtTime(1, t + 0.04);
-        } else o.frequency.setTargetAtTime(hz(m), t, 0.004);   // legato: straight on to the next note
+        } else o.frequency.setValueAtTime(hz(m), t);   // legato: straight on to the next note, with no slide
       });
-      g.gain.setValueAtTime(1, Math.max(a + 0.05, b - 0.07)); g.gain.linearRampToValueAtTime(0, b);
+      g.gain.setValueAtTime(1, Math.max(a + 0.03, b - 0.03)); g.gain.linearRampToValueAtTime(0, b);   // let go cleanly, so a lift is heard
       o.connect(g); o.start(a); o.stop(b + 0.02); playing.push(o);
     });
   });

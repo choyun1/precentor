@@ -514,6 +514,12 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             return self.reply({'error': 'not found'}, 404)
         return super().do_GET()
 
+    def end_headers(self):
+        # the page and data.js change whenever Precentor is rebuilt: the browser must ask again, not reuse an old copy
+        if not any(h.lower().startswith(b'cache-control') for h in getattr(self, '_headers_buffer', [])):
+            self.send_header('Cache-Control', 'no-cache')
+        super().end_headers()
+
     def do_POST(self):
         if not self.ours():
             return self.reply({'error': 'local pages only'}, 403)
