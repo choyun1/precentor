@@ -6,7 +6,7 @@
 let audio = null, playing = null, playId = 0;     // playId: which playback is current, so an old one's timer can't stop a new one
 let principal = null, room = null;
 // the breaths, in whole notes: rest is the time added before the next phrase, lift how much earlier the note before lets go
-const BREATH = {rest: 0.07, lift: 0.05};          // between a double chant's halves
+const BREATH = {rest: 0.055, lift: 0.04};         // between a double chant's halves
 const CATCH = {rest: 0.0128, lift: 0.0255};         // at a mediant (each quarter of a double, the middle of a single): a lift of the hands
 function stopPlay() { playId++; if (playing) { playing.forEach(o => { try { o.stop(); } catch (e) {} }); playing = null; } document.querySelectorAll(".play").forEach(b => b.textContent = "▶ Play"); }
 function play(id, btn, shift = 0) {
