@@ -74,6 +74,31 @@ function libHint(v) {
   const i = LIB.rows.indexOf(r);
   return `<br><span class="hint">In the library${r.Season ? " (" + esc(SEASON_NAMES[r.Season] || r.Season) + ")" : ""}${libWhere(r) ? ": " + libWhere(r) : ""}</span>${libPdf(r) ? ` · <span class="link" onclick="libOpen(${i})">Open score</span>` : ""}`;
 }
+// a title typed or picked without its composer: the composer (and dates) from the library, when only one piece
+// there has that title; else from what's been done before under it, when that's only one piece
+function libComplete(v) {
+  v = String(v || "").trim();
+  if (!v || hymnsOf(v).length || splitPiece(v)[1]) return v;
+  const rows = libTitled(v);
+  if (rows.length === 1) return libPiece(rows[0]);
+  if (rows.length) return v;                                     // more than one: libChoices asks which
+  const t = normT(v), done = new Set();
+  for (const f of ["anthem", "organ"]) for (const x of REP[f] || []) { const [xt, xc] = splitPiece(x[0]); if (xc && normT(xt) === t) done.add(x[0]); }
+  return done.size === 1 ? [...done][0] : v;
+}
+const libTitled = v => (libIndex().byTitle.get(normT(splitPiece(v)[0])) || []).filter(r => r.Composer && libReal(r));
+// a title with no composer that more than one piece in the library has: which one (where: "svc:<slot>" or "seq:<row>")
+function libChoices(v, where) {
+  v = String(v || "").trim();
+  if (!v || hymnsOf(v).length || splitPiece(v)[1]) return "";
+  const rows = libTitled(v); if (rows.length < 2) return "";
+  return `<br><span class="hint">In the library by more than one composer: which? ${rows.map(r => `<span class="link" onclick="libPick('${esc(where)}', ${LIB.rows.indexOf(r)})">${esc(r.Composer)}${r.Years ? " (" + esc(r.Years) + ")" : ""}</span>`).join(" · ")}</span>`;
+}
+function libPick(where, i) {
+  const v = libPiece(LIB.rows[i]), j = where.indexOf(":"), w = where.slice(0, j), k = where.slice(j + 1);
+  if (w === "seq") B.seq[+k][1] = v; else B.svc[k] = v;
+  renderBuilder();
+}
 // the PDF of a piece on this computer (the launcher matches the score folders' files to the library: /api/ping)
 const libPdf = r => SERVER && LIB.folders ? (LIB.pdfs || {})[libPiece(r)] || "" : "";
 // not "???" or "TBD", nor a parish's "not music:" (parish.txt), such as SNOW DAY

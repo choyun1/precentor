@@ -94,7 +94,7 @@ function previousService(date, order) {
   const svc = {}; if (d) SV.byDate[d].items.forEach(([k, v]) => svc[k] = v);
   return {date: d || "", svc};
 }
-function slotHint(s, value) {
+function slotHint(s, value, where) {
   const v = (value !== undefined ? value : (B.svc[s.key] || "")).trim(); if (!v) return "";
   const hs = s.kind === "music" ? [] : hymnsOf(v);
   if (hs.length && !hs.every(h => h.service)) {
@@ -110,14 +110,14 @@ function slotHint(s, value) {
   }
   const r = (REP[family(s)] || []).find(x => x[0] === v);
   const before = r ? r[1].filter(d => d < B.date) : [];
-  return `<span class="hint">${before.length ? `done ${before.length}× before · last ${esc(before[before.length - 1])}` : "not done here before"}</span>${s.kind === "anthem" || family(s) === "organ" ? libHint(v) : ""}`;
+  return `<span class="hint">${before.length ? `done ${before.length}× before · last ${esc(before[before.length - 1])}` : "not done here before"}</span>${s.kind === "anthem" || family(s) === "organ" ? libHint(v) + libChoices(v, where || "svc:" + s.key) : ""}`;
 }
 function anthemBox(k) {
   const v = (B.svc[k] || "").trim();
   if (!v || hymnsOf(v).length) return "";
   const a = findAnthem(v), t = splitPiece(v)[0], id = sid(k);
   return `<details ${a ? "" : "open"} style="margin:4px 0 8px"><summary class="hint">${a ? "Words" + (a.source ? " (" + esc(a.source) + ")" : "") + ": on file" : "No words on file for this piece yet: paste them here (or leave empty)"}</summary>
-    <input type="text" id="asrc-${id}" value="${esc(a ? a.source : "")}" placeholder="Where the words come from (optional), e.g. John 3:16" style="width:100%;margin:6px 0">
+    <input type="text" id="asrc-${id}" value="${esc(a ? a.source : "")}" placeholder="Who wrote the words, or where they come from (optional), e.g. Kolbeinn Tumason (1173–1208) or John 3:16" style="width:100%;margin:6px 0">
     <textarea id="atxt-${id}" style="width:100%;height:${a ? Math.min(24, a.text.split("\n").length + 1) * 1.45 : 8}em;font-family:inherit;font-size:15px;line-height:1.45">${esc(a ? a.text : "")}</textarea>
     ${SERVER ? `<button class="small" onclick="saveAnthem('${k}')">Save the words</button> <span class="hint">kept in parish/anthems/, used whenever ${esc(t)} comes round again</span>` : ""}</details>${libAddBox(id, v)}`;
 }
@@ -162,9 +162,9 @@ function seqCard() {
     const opts = sl.map(x => `<option value="${esc(x.key)}" ${x.key === k ? "selected" : ""}>${esc(x.label.replace(/\s*\{hymn\|anthem\}/, ""))}</option>`).join("") + `<option value="also" ${k === "also" ? "selected" : ""}>Other (as written)</option>`;
     const list = s.kind === "lesson" ? "rep-lesson" : s.kind === "hymn" ? "" : "rep-" + sid(family(s));
     const ph = {lesson: "e.g. Isaiah 40:1-11 (the summary comes from earlier years) or Isaiah 40:1-11 | summary", hymn: "hymn number, e.g. 102", anthem: "Title - Composer (dates), or a hymn number", music: "Title - Composer (dates)"}[s.kind] || "";
-    const hint = s.kind === "lesson" ? lessonHint(v, n) : slotHint(s, v);
+    const hint = s.kind === "lesson" ? lessonHint(v, n) : slotHint(s, v, "seq:" + i);
     return `<div class="seqrow"><select onchange="B.seq[${i}][0]=this.value; renderBuilder()">${opts}</select>
-      <div><input type="text" value="${esc(v)}" ${list ? `list="${list}"` : ""} placeholder="${esc(ph)}" onchange="B.seq[${i}][1]=this.value.trim(); renderBuilder()" style="width:100%">
+      <div><input type="text" value="${esc(v)}" ${list ? `list="${list}"` : ""} placeholder="${esc(ph)}" onchange="B.seq[${i}][1]=libComplete(this.value); renderBuilder()" style="width:100%">
         <div class="svhint">${hint}</div>${s.kind === "anthem" ? seqAnthemBox(i) : family(s) === "organ" ? libAddBox("seq" + i, v, true) : ""}</div>
       <div class="seqbtn"><span class="link" title="move up" onclick="seqMove(${i},-1)">↑</span> <span class="link" title="move down" onclick="seqMove(${i},1)">↓</span> <span class="link" title="remove" onclick="B.seq.splice(${i},1); renderBuilder()">✕</span></div></div>`;
   }).join("");
@@ -174,7 +174,6 @@ function seqCard() {
     <div class="svrow"><label>Organist</label><div><input type="text" value="${esc(B.svc.organist || "")}" onchange="setSvc('organist', this.value)" style="width:120px"></div></div>
     ${rows || '<p class="hint">Nothing yet.</p>'}
     <p style="margin:8px 0" class="hint">add: ${adds.map(x => `<span class="link" onclick="B.seq.push(['${x.key}','']); renderBuilder()">${esc(x.label.replace(/\s*\{hymn\|anthem\}/, ""))}</span>`).join(" · ")} · <span class="link" onclick="B.seq.push(['also','']); renderBuilder()">other</span></p>
-    <div class="svrow"><label>Note</label><div><textarea rows="2" style="width:100%" onchange="B.note=this.value; refreshFile()">${esc(B.note)}</textarea></div></div>
     ${PLUGINS.rows.map(f => f()).join("")}
     <datalist id="rep-lesson">${(SV.lessons || []).map(l => `<option value="${esc(l.reading)}">${esc(l.summary)}</option>`).join("")}</datalist>
   </div>`;
@@ -197,7 +196,7 @@ function seqAnthemBox(i) {
   const a = findAnthem(v);
   const [t] = splitPiece(v), id = "seq" + i;
   return `<details style="margin:4px 0 8px"><summary class="hint">${a ? "Words" + (a.source ? " (" + esc(a.source) + ")" : "") + ": on file" : "No words on file yet: paste them here"}</summary>
-    <input type="text" id="asrc-${id}" value="${esc(a ? a.source : "")}" placeholder="Where the words come from (optional)" style="width:100%;margin:6px 0">
+    <input type="text" id="asrc-${id}" value="${esc(a ? a.source : "")}" placeholder="Who wrote the words, or where they come from (optional), e.g. Kolbeinn Tumason (1173–1208) or John 3:16" style="width:100%;margin:6px 0">
     <textarea id="atxt-${id}" style="width:100%;height:${a ? Math.min(24, a.text.split("\n").length + 1) * 1.45 : 8}em;font-family:inherit;font-size:15px;line-height:1.45">${esc(a ? a.text : "")}</textarea>
     ${SERVER ? `<button class="small" onclick="saveSeqAnthem(${i})">Save the words</button>` : ""}</details>${libAddBox(id, v)}`;
 }
@@ -231,8 +230,6 @@ function serviceCard() {
     ${shown.map(row).join("")}
     ${others.map(k => row({key: k, label: k + " (not in this order)", kind: (anySlot(k) || {}).kind || "music"})).join("")}
     ${hidden.length ? `<div class="svrow"><label></label><div class="hint">add: ${hidden.map(s => `<span class="link" onclick="B.showOpt.add('${s.key}'); renderBuilder()">${esc(s.label.replace(/\s*\{hymn\|anthem\}/, ""))}</span>`).join(" · ")}</div></div>` : ""}
-    <div class="svrow"><label>Other items</label><div><textarea rows="2" style="width:100%" placeholder="One per line, as written, e.g. Te Deum: Collegium Regale - Herbert Howells (1892-1983)" onchange="B.also=this.value; refreshFile()">${esc(B.also)}</textarea></div></div>
-    <div class="svrow"><label>Note</label><div><textarea rows="2" style="width:100%" placeholder="Anything else worth writing down about this service" onchange="B.note=this.value; refreshFile()">${esc(B.note)}</textarea></div></div>
     ${PLUGINS.rows.map(f => f()).join("")}
   </div>`;
 }
@@ -241,7 +238,9 @@ function repLists() {
   return fams.map(f => `<datalist id="rep-${sid(f)}">${f === "anthem" || f === "organ" ? libOptions(f) : REP[f].map(r => `<option value="${esc(r[0])}">${r[1].length}× · last ${esc(r[1][r[1].length - 1])}</option>`).join("")}</datalist>`).join("");
 }
 function setSvc(k, v) {
-  B.svc[k] = v.trim(); refreshSlot(k);
+  B.svc[k] = libComplete(v);
+  if (B.svc[k] !== v.trim()) { renderBuilder(); return; }     // the composer from the library: shown in the box
+  refreshSlot(k);
   // the Nunc dimittis usually follows the Magnificat's setting
   const m = B.svc[k].match(/^Magnificat\b(.*)$/i);
   if (k === "magnificat" && m && !(B.svc["nunc dimittis"] || "").trim() && slotsOf(curOrder()).some(x => x.key === "nunc dimittis")) {
