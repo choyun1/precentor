@@ -8,6 +8,8 @@
 The library is optional, and needs no particular way of keeping music. It is one spreadsheet,
 parish/library/catalog.csv (UTF-8), one row per piece, and every column but Title may be left empty:
 
+    ID                             the piece's own number (L0001), given when it's added; a parish plugin's
+                                   catalog may use its own (P0123)
     Composer, Title, Catalog no.   who and what; Years (1852-1924) completes "Title - Composer (dates)"
     Format                         PDF, Octavo or Book (a piece can be a PDF and have octavos too)
     Season, Occasion               when it fits: advent christmas epiphany lent holy_week easter pentecost,
@@ -16,6 +18,11 @@ parish/library/catalog.csv (UTF-8), one row per piece, and every column but Titl
     Location, Copies, Publisher no.  where the paper copies are, how many, and the number to order more by
     Voicing, Words, Notes          e.g. SATB, or organ (organ alone: offered for the prelude and postlude);
                                    Words names its file in parish/anthems/
+    Used as                        choir, organ or both: where the planner offers it (a choir piece played
+                                   on the organ is "both"); empty: from the Voicing
+
+What the record calls a piece, when that isn't the library's "Title - Composer", is linked to its ID in
+parish/library/links.csv (Record, ID), written when a piece is added or edited from a slot of the planner.
 
 How someone keeps their scores goes in parish/library/library.txt, with the parish's other files. Every line
 is optional:
@@ -32,7 +39,8 @@ is optional:
 
 A parish plugin (see tools/plugins.py) can add to what the planner shows: plugin.py's library(rows) gets the
 catalog's rows and returns them changed or added to (say, the seasons from a music library kept some other way),
-and library_files() names the PDFs it looks after. The catalog itself is never changed by them.
+and library_files() names the PDFs it looks after. Its library_save(row, pdf) may keep a piece somewhere else
+too (its own catalog): it returns the row, with its ID and File there, and the planner's catalog keeps the rest.
 """
 import csv, datetime as dt, os, re, shutil, sys, unicodedata
 
@@ -40,8 +48,9 @@ TOOLS = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, TOOLS)
 import paths   # noqa: E402
 
-COLUMNS = ['Composer', 'Title', 'Catalog no.', 'Years', 'Format', 'Season', 'Occasion', 'Voicing', 'File',
-           'Location', 'Copies', 'Publisher no.', 'Words', 'Notes']
+COLUMNS = ['ID', 'Composer', 'Title', 'Catalog no.', 'Years', 'Format', 'Season', 'Occasion', 'Voicing', 'Used as',
+           'File', 'Location', 'Copies', 'Publisher no.', 'Words', 'Notes']
+USES = ('choir', 'organ', 'both')
 FORMATS = ('PDF', 'Octavo', 'Book')
 SEASONS = ('advent', 'christmas', 'epiphany', 'lent', 'holy_week', 'easter', 'pentecost')
 DIR = os.path.join(paths.HOME, 'library')
@@ -138,12 +147,52 @@ def write(rows, path=None):
         b = os.path.join(os.path.dirname(path), 'backups')
         os.makedirs(b, exist_ok=True)
         shutil.copy2(path, os.path.join(b, dt.datetime.now().strftime('catalog-%Y%m%d-%H%M%S.csv')))
+    give_ids(rows)
     extra = [k for r in rows for k in r if k not in COLUMNS]
     cols = COLUMNS + list(dict.fromkeys(extra))
     with open(path, 'w', encoding='utf-8', newline='') as fh:
         w = csv.DictWriter(fh, cols, extrasaction='ignore')
         w.writeheader()
         w.writerows(sorted(rows, key=lambda r: (surname(r['Composer']), norm(r['Title']))))
+    return path
+
+
+def give_ids(rows):
+    """An ID (L0001, L0002…) for each row without one."""
+    n = max([int(m.group(1)) for r in rows for m in [re.fullmatch(r'L(\d+)', r.get('ID') or '')] if m] + [0])
+    for r in rows:
+        if not r.get('ID'):
+            n += 1
+            r['ID'] = f'L{n:04d}'
+    return rows
+
+
+def by_id(rows, i):
+    return next((r for r in rows if i and r.get('ID') == i), None)
+
+
+# ------------------------------------------------------------------ what the record calls a piece
+def links_file():
+    return os.path.join(os.path.dirname(catalog_file()), 'links.csv')
+
+
+def links(path=None):
+    """{what the record calls it: ID}"""
+    path = path or links_file()
+    if not os.path.exists(path):
+        return {}
+    with open(path, encoding='utf-8-sig', newline='') as fh:
+        return {(r.get('Record') or '').strip(): (r.get('ID') or '').strip() for r in csv.DictReader(fh)
+                if (r.get('Record') or '').strip() and (r.get('ID') or '').strip()}
+
+
+def write_links(got, path=None):
+    path = path or links_file()
+    os.makedirs(os.path.dirname(path) or '.', exist_ok=True)
+    with open(path, 'w', encoding='utf-8', newline='') as fh:
+        w = csv.writer(fh)
+        w.writerow(['Record', 'ID'])
+        w.writerows(sorted(got.items(), key=lambda x: norm(x[0])))
     return path
 
 
@@ -163,8 +212,12 @@ def split_piece(value):
     return title.strip(), composer.strip(), years
 
 
-def find(rows, value):
-    """The row for 'Title - Composer (dates)', or None. Byrd's Ave verum is not Mozart's."""
+def find(rows, value, linked=None):
+    """The row for 'Title - Composer (dates)', or None. Byrd's Ave verum is not Mozart's. What the record calls
+    it (links.csv, or linked) comes first."""
+    hit = by_id(rows, (linked or {}).get((value or '').strip()))
+    if hit:
+        return hit
     title, composer, _ = split_piece(value)
     hits = [r for r in rows if norm(r['Title']) == norm(title)]
     if composer:
@@ -180,11 +233,30 @@ def clean(row):
     if r['Format'] and r['Format'] not in FORMATS:
         raise ValueError('Format is PDF, Octavo or Book')
     r['Season'] = r['Season'].lower().replace(' ', '_')
+    r['Used as'] = r['Used as'].lower()
+    if r['Used as'] and r['Used as'] not in USES:
+        raise ValueError('Used as is choir, organ or both')
     if r['Season'] and r['Season'] not in SEASONS:
         raise ValueError('Season is one of ' + ', '.join(SEASONS) + ', or empty for any time')
     if r['Copies'] and not r['Copies'].isdigit():
         raise ValueError('Copies is a number')
     return r
+
+
+def save(row, rows=None):
+    """The Add/Edit form's piece: the row with its ID changed (every field as sent, so a field can be emptied),
+    or a new one. -> (rows, the row, new?)"""
+    rows = read() if rows is None else rows
+    new = clean(row)
+    old = by_id(rows, new['ID'])
+    if old:
+        old.update({k: v for k, v in new.items() if k != 'File' or v})
+        return rows, old, False
+    if new['ID'] and not re.fullmatch(r'[A-Z]+\d+', new['ID']):
+        raise ValueError('that ID is not one of the library\'s')
+    rows.append(new)
+    give_ids(rows)
+    return rows, new, True
 
 
 def add(row, rows=None):
@@ -224,10 +296,10 @@ def from_record(rows=None, repertoire=None):
     import service
     rows = read() if rows is None else rows
     rep = service.repertoire() if repertoire is None else repertoire
-    n = 0
+    linked, n = links(), 0
     for family, voicing in (('anthem', ''), ('organ', 'organ')):
         for item, dates in rep.get(family, []):
-            if service.hymns(item) or find(rows, item) or unknown(item):
+            if service.hymns(item) or find(rows, item, linked) or unknown(item):
                 continue
             title, composer, years = split_piece(item)
             rows.append({c: '' for c in COLUMNS} | {'Title': title, 'Composer': composer, 'Years': years,
@@ -248,6 +320,18 @@ def shown(rows):
             except Exception as e:                       # a broken plugin shouldn't stop the page
                 sys.stderr.write(f'  plugin {name}: library() failed: {e}\n')
     return rows
+
+
+def plugin_save(row, pdf):
+    """A plugin that keeps pieces in a catalog of its own (plugin.py's library_save(row, pdf)) keeps this one there:
+    -> (the row as it has it, with its ID and File, what it has to say) or None when no plugin takes it."""
+    import plugins
+    for m in plugins.modules().values():
+        if hasattr(m, 'library_save'):
+            got = m.library_save(dict(row), pdf)
+            if got:
+                return got
+    return None
 
 
 def plugin_files():
@@ -405,9 +489,9 @@ def pdfs(rows=None, s=None):
 
 def is_organ(row):
     """Organ alone, by its Voicing (as the planner's library tab reads it)."""
+    if row.get('Used as') in ('organ', 'both'):
+        return row['Used as'] == 'organ'
     v = row.get('Voicing') or ''
-    if re.search(r'\bplayed on (the )?organ\b', v, re.I):         # a choir piece played on the organ
-        return True
     return bool(re.search(r'\b(organ|keyboard|piano|harpsichord)\b', v, re.I)) and not re.search(
         r'\b(s?a?t?b|satb|ssa|sab|ttbb|ttb|unison|choir|voices?|treble|soprano|alto|tenor|bass|cantor)\b', v, re.I)
 
@@ -487,6 +571,7 @@ def rows_for_page(rows=None):
 def page_data():
     s = settings()
     return {'rows': shown(read()), **folder_status(s), 'pdfs': {}, 'seasons': list(SEASONS), 'formats': list(FORMATS),
+            'links': links(), 'uses': list(USES),
             'where': os.path.relpath(catalog_file(s), paths.HOME).replace(os.sep, '/')
             if catalog_file(s).startswith(paths.HOME) else catalog_file(s)}
 

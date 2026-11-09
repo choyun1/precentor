@@ -198,6 +198,45 @@ def api_library_add(data):
     return {'ok': True, 'row': r, 'new': new}
 
 
+def api_library_save(data):
+    """The Add/Edit form: a piece added, or changed (its ID given); with a PDF (base64), the PDF put in the score
+    folder, or wherever a plugin keeps its pieces (library_save). 'record': what the slot it was added from calls
+    it, linked to its ID when that isn't how the library writes it."""
+    import base64, library
+    row = data.get('row') if isinstance(data.get('row'), dict) else {}
+    pdf = base64.b64decode(text_arg(data, 'pdf')) if data.get('pdf') else None
+    rows, said = library.read(), []
+    old_id = library.clean(row)['ID']
+    got = library.plugin_save(library.clean(row), pdf)
+    if got:                                              # it keeps the piece; this catalog keeps the rest of it
+        kept, said = got
+        row = dict(row) | {k: kept[k] for k in ('ID', 'File', 'Format') if kept.get(k)}
+        if old_id and kept.get('ID') and kept['ID'] != old_id:      # a piece of ours is now one of the plugin's
+            mine = library.by_id(rows, old_id)
+            if mine:
+                mine['ID'] = kept['ID']
+            lk = library.links()
+            if any(v == old_id for v in lk.values()):
+                library.write_links({k: kept['ID'] if v == old_id else v for k, v in lk.items()})
+        pdf = None
+    rows, r, new = library.save(row, rows)
+    if pdf:
+        if r['File'] and library.score_path(r['File']):
+            raise ValueError(f"{library.piece(r)} already has a PDF: {r['File']}")
+        r['File'], r['Format'] = library.place_pdf(r, pdf), r['Format'] or 'PDF'
+    files = [_save_library(rows, ('Library: added ' if new else 'Library: changed ') + library.piece(r))]
+    rec = text_arg(data, 'record').strip() if data.get('record') else ''
+    if rec and library.norm(rec) != library.norm(library.piece(r)):
+        lk = library.links()
+        if lk.get(rec) != r['ID']:
+            lk[rec] = r['ID']
+            f = library.write_links(lk)
+            if library.in_git(f):
+                history.record([f], f'Library: {rec} is {library.piece(r)}')
+    return {'ok': True, 'row': r, 'new': new, 'said': said, 'links': library.links(),
+            'rows': library.rows_for_page(rows)}
+
+
 def api_library_from_record(data):
     """Start (or add to) the library from every anthem and organ piece already done."""
     import library
@@ -408,7 +447,7 @@ ROUTES = {'/api/chant/open': api_chant_open, '/api/chant/preview': api_chant_pre
           '/api/chant/details': api_chant_details, '/api/chant/import': api_chant_import,
           '/api/notes': api_notes, '/api/sunday': api_sunday, '/api/sung': api_sung, '/api/commit': api_commit,
           '/api/undo': api_undo, '/api/anthem': api_anthem, '/api/open': api_open, '/api/score': api_score,
-          '/api/library/add': api_library_add, '/api/library/from-record': api_library_from_record,
+          '/api/library/add': api_library_add, '/api/library/save': api_library_save, '/api/library/from-record': api_library_from_record,
           '/api/library/scan': api_library_scan, '/api/library/keep': api_library_keep, '/api/text': api_text,
           '/api/check': api_check, '/api/build': api_build}
 
