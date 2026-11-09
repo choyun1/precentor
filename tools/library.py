@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""The music library: the anthems (and other pieces) a parish has, so the planner can suggest them.
+"""The music library: the anthems and organ music a parish has, so the planner can suggest them.
 
     python tools/library.py                  # what's in the library, by season
-    python tools/library.py from-record      # start a library from every anthem already sung
+    python tools/library.py from-record      # start a library from every anthem and organ piece already done
     python tools/library.py scan             # look through the score folders for PDFs not in the library
 
 The library is optional, and needs no particular way of keeping music. It is one spreadsheet,
@@ -14,7 +14,8 @@ parish/library/catalog.csv (UTF-8), one row per piece, and every column but Titl
                                    or empty for any time; Occasion is a day or feast, e.g. Ascension
     File                           a PDF's path inside a score folder (any folders, any depth)
     Location, Copies, Publisher no.  where the paper copies are, how many, and the number to order more by
-    Voicing, Words, Notes          e.g. SATB, organ; Words names its file in parish/anthems/
+    Voicing, Words, Notes          e.g. SATB, or organ (organ alone: offered for the prelude and postlude);
+                                   Words names its file in parish/anthems/
 
 How someone keeps their scores goes in parish/library/library.txt, with the parish's other files. Every line
 is optional:
@@ -23,10 +24,15 @@ is optional:
     score folders:   ~/Sync/Music/Sacred; D:/Music/Sacred       # where the PDFs are: ~ is your home folder on
                                                                 # each computer, and a folder a computer
                                                                 # doesn't have is passed over there
+    organ folders:   ~/Sync/Music/Organ                         # score folders whose PDFs are all organ music
     names:           {composer}-{title}                         # how a PDF's name reads (_ for spaces)
     file new pdfs:   {season}/{composer}-{title}.pdf            # where a PDF added in the planner goes
     folder seasons:  Advent = advent, Christmas = christmas, General = any   # a folder suggests a season
     skip folders:    Hymns, Chant_resources
+
+A parish plugin (see tools/plugins.py) can add to what the planner shows: plugin.py's library(rows) gets the
+catalog's rows and returns them changed or added to (say, the seasons from a music library kept some other way),
+and library_files() names the PDFs it looks after. The catalog itself is never changed by them.
 """
 import csv, datetime as dt, os, re, shutil, sys, unicodedata
 
@@ -66,10 +72,23 @@ def catalog_file(s=None):
     return os.path.expanduser(s['catalog']) if s.get('catalog') else os.path.join(DIR, 'catalog.csv')
 
 
+def _folders(s, key):
+    return [os.path.expanduser(f) for f in _list(s.get(key), r';')]
+
+
 def score_folders(s=None):
-    """The score folders this computer has: list each computer's, and each uses its own."""
+    """The score folders this computer has (the organ folders too): list each computer's, and each uses its own."""
     s = settings() if s is None else s
-    return [p for p in (os.path.expanduser(f) for f in _list(s.get('score folders'), r';')) if os.path.isdir(p)]
+    out = []
+    for p in _folders(s, 'score folders') + _folders(s, 'organ folders'):
+        if os.path.isdir(p) and p not in out:
+            out.append(p)
+    return out
+
+
+def organ_folders(s=None):
+    s = settings() if s is None else s
+    return {os.path.realpath(p) for p in _folders(s, 'organ folders') if os.path.isdir(p)}
 
 
 def folder_seasons(s=None):
@@ -200,28 +219,58 @@ def unknown(title):
 
 
 def from_record(rows=None, repertoire=None):
-    """A row for every anthem already sung that isn't in the library. -> (rows, how many added)"""
+    """A row for every anthem and organ piece (prelude, postlude) already done that isn't in the library; the
+    organ pieces' Voicing is organ. -> (rows, how many added)"""
     import service
     rows = read() if rows is None else rows
     rep = service.repertoire() if repertoire is None else repertoire
     n = 0
-    for item, dates in rep.get('anthem', []):
-        if service.hymns(item) or find(rows, item) or unknown(item):
-            continue
-        title, composer, years = split_piece(item)
-        rows.append({c: '' for c in COLUMNS} | {'Title': title, 'Composer': composer, 'Years': years,
-                                                 'Season': season_of(dates)})
-        n += 1
+    for family, voicing in (('anthem', ''), ('organ', 'organ')):
+        for item, dates in rep.get(family, []):
+            if service.hymns(item) or find(rows, item) or unknown(item):
+                continue
+            title, composer, years = split_piece(item)
+            rows.append({c: '' for c in COLUMNS} | {'Title': title, 'Composer': composer, 'Years': years,
+                                                     'Season': season_of(dates), 'Voicing': voicing})
+            n += 1
     return rows, n
 
 
+# ------------------------------------------------------------------ what plugins add
+def shown(rows):
+    """The catalog as the planner shows it: what a parish's plugins make of it (plugin.py's library(rows), say
+    from a music library kept elsewhere). The catalog itself is not changed."""
+    import plugins
+    for name, m in plugins.modules().items():
+        if hasattr(m, 'library'):
+            try:
+                rows = m.library([dict(r) for r in rows])
+            except Exception as e:                       # a broken plugin shouldn't stop the page
+                sys.stderr.write(f'  plugin {name}: library() failed: {e}\n')
+    return rows
+
+
+def plugin_files():
+    """The PDFs a plugin looks after (plugin.py's library_files()), which Look for new PDFs leaves to it."""
+    import plugins
+    out = set()
+    for m in plugins.modules().values():
+        if hasattr(m, 'library_files'):
+            try:
+                out |= {os.path.basename(str(f).replace('\\', '/')).lower() for f in m.library_files()}
+            except Exception:
+                pass
+    return out
+
+
 # ------------------------------------------------------------------ PDFs in the score folders
-CATALOG_NO = re.compile(r'^((?:Op|BWV|HWV|SWV|SV|KV|K|RV|WAB|Hob|D|TWV|BuxWV|ZWV|Z)\.?_?\d+[a-z]?(?:_\d+)?)-(.+)$', re.I)
+CATALOG_NO = re.compile(r'^((?:Op|BWV|HWV|SWV|SSWV|SV|KV|K|RV|WAB|Hob|D|TWV|BuxWV|ZWV|Z|FVB|MWV)\.?_?\d+[a-z]?(?:_\d+)?)-(.+)$', re.I)
 
 
 def parse_name(filename, pattern='{composer}-{title}'):
     """'Fauré-Op_048-Requiem.pdf' -> {Composer: Fauré, Catalog no.: Op. 48, Title: Requiem}. A name that doesn't
-    fit the pattern becomes the title alone."""
+    fit the pattern becomes the title alone. An arranger after the title ('Gruber-Silent_Night-arr_Paulus.pdf')
+    joins the composer: 'Gruber, arr. Paulus'."""
     stem = os.path.splitext(os.path.basename(filename))[0]
     pat = os.path.splitext(pattern)[0] if pattern.lower().endswith('.pdf') else pattern
     rx = re.escape(pat)
@@ -230,6 +279,10 @@ def parse_name(filename, pattern='{composer}-{title}'):
     m = re.fullmatch(rx, stem)
     got = {k: v for k, v in (m.groupdict() if m else {'title': stem}).items()}
     out = {'Composer': got.get('composer', ''), 'Title': got.get('title', stem), 'Catalog no.': got.get('catalog', '')}
+    a = re.search(r'[-_]arr[._]+([^-]+)$', out['Title'])
+    arranger = a.group(1) if a and a.start() else ''
+    if arranger:
+        out['Title'] = out['Title'][:a.start()]
     if not out['Catalog no.']:
         c = CATALOG_NO.match(out['Title'])
         if c:
@@ -243,7 +296,16 @@ def parse_name(filename, pattern='{composer}-{title}'):
     for k in out:
         out[k] = re.sub(r'\s+', ' ', out[k].replace('_', ' ')).strip()
     out['Composer'] = re.sub(r'\s+([A-Z])$', r', \1', out['Composer'])        # Thomson_R -> Thomson, R
+    if arranger:
+        arr = re.sub(r'\s+([A-Z])$', r' (\1)', re.sub(r'\s+', ' ', arranger.replace('_', ' ')).strip())
+        out['Composer'] = f"{out['Composer']}, arr. {arr}" if out['Composer'] else 'arr. ' + arr
     return out
+
+
+def _found(s, skip):
+    """(the PDF's path inside its score folder, whether that's an organ folder) for each PDF in the score folders"""
+    organ = organ_folders(s)
+    return [(f, os.path.realpath(folder) in organ) for folder in score_folders(s) for f in _files(folder, skip)]
 
 
 def _files(folder, skip):
@@ -261,7 +323,8 @@ def scan(rows=None, s=None):
     rows = read() if rows is None else rows
     skip = {x.lower() for x in _list(s.get('skip folders'))}
     seasons, pattern = folder_seasons(s), s.get('names') or '{composer}-{title}'
-    found = [f for folder in score_folders(s) if os.path.isdir(folder) for f in _files(folder, skip)]
+    found_in = _found(s, skip)
+    found, organ = [f for f, _ in found_in], {f for f, o in found_in if o}
     have = {r['File'] for r in rows if r['File']}
     by_name = {}
     for f in found:
@@ -271,12 +334,13 @@ def scan(rows=None, s=None):
         if r['File'] and r['File'] not in found:
             elsewhere = [f for f in by_name.get(os.path.basename(r['File']).lower(), []) if f not in have]
             (out['moved'].append([r['File'], elsewhere[0]]) if len(elsewhere) == 1 else out['missing'].append(r['File']))
-    moved_to = {b for _, b in out['moved']}
+    moved_to, theirs = {b for _, b in out['moved']}, plugin_files()
     for f in found:
-        if f in have or f in moved_to:
+        if f in have or f in moved_to or os.path.basename(f).lower() in theirs:      # a plugin looks after it
             continue
         top = f.split('/')[0].lower() if '/' in f else ''
-        draft = {c: '' for c in COLUMNS} | parse_name(f, pattern) | {'Format': 'PDF', 'File': f, 'Season': seasons.get(top, '')}
+        draft = {c: '' for c in COLUMNS} | parse_name(f, pattern) | {'Format': 'PDF', 'File': f, 'Season': seasons.get(top, ''),
+                                                                     'Voicing': 'organ' if f in organ else ''}
         same = find(rows, piece(draft))
         out['new'].append(draft | ({'Matches': piece(same)} if same else {}))     # keeping it gives that row its PDF
     return out
@@ -288,6 +352,16 @@ def apply_moves(rows, moved):
             if r['File'] == old:
                 r['File'] = new
     return rows
+
+
+def _comps(composer):
+    """The composer's surname and the arranger's: 'Gruber, arr. Paulus' -> {'gruber', 'paulus'}"""
+    text = composer or ''
+    a = re.search(r'\barr\.?\s+(.+)$', text)
+    out = {_comp(text[:a.start()].rstrip(' ,('))} if a else {_comp(text)}
+    if a:
+        out.add(_comp(a.group(1)))
+    return out - {''}
 
 
 def _comp(composer):
@@ -306,21 +380,44 @@ def pdfs(rows=None, s=None):
         return {}
     skip = {x.lower() for x in _list(s.get('skip folders'))}
     pattern = s.get('names') or '{composer}-{title}'
-    found = [(f, parse_name(f, pattern)) for folder in score_folders(s) for f in _files(folder, skip)]
+    found = [(f, parse_name(f, pattern), catalog_nos(os.path.basename(f))) for f, _ in _found(s, skip)]
     out = {}
     for r in rows:
         if r['File'] and score_path(r['File'], s):
             out[piece(r)] = r['File']
             continue
-        t, c = norm(r['Title']), _comp(r['Composer'])
+        t, c = norm(r['Title']), _comps(r['Composer'])
+        nos = catalog_nos(r['Catalog no.'] + ' ' + r['Title'])
         if len(t) < 4:
             continue
-        for f, d in found:
+        for f, d, fnos in found:
             ft = norm(d['Title'])
-            if (ft == t or (len(ft) >= 8 and (t.startswith(ft) or ft.startswith(t)))) and (not c or not d['Composer']
-                                                                                         or _comp(d['Composer']) == c):
+            if c and d['Composer'] and not c & _comps(d['Composer']):
+                continue
+            if nos and fnos and not nos & fnos:          # the same title, another work: BWV 553 is not BWV 531
+                continue
+            if ft == t or (len(ft) >= 8 and (t.startswith(ft) or ft.startswith(t))) or (
+                    c and nos & fnos):                   # Fugue in A minor, BWV 543/2: BWV 543's PDF
                 out[piece(r)] = f
                 break
+    return out
+
+
+def is_organ(row):
+    """Organ alone, by its Voicing (as the planner's library tab reads it)."""
+    v = row.get('Voicing') or ''
+    return bool(re.search(r'\b(organ|keyboard|piano|harpsichord)\b', v, re.I)) and not re.search(
+        r'\b(s?a?t?b|satb|ssa|sab|ttbb|ttb|unison|choir|voices?|treble|soprano|alto|tenor|bass|cantor)\b', v, re.I)
+
+
+def catalog_nos(text):
+    """'Prelude in A minor, BWV 543/1' -> {'bwv543'}; 'Op. 122, No. 5' -> {'op122'}: the work, not its part.
+    A file's 'Bach-BWV_0553-0560-8_Kleine...' is each of BWV 553 to 560."""
+    out = set()
+    for k, a, b in re.findall(r'(?<![A-Za-z])(Op|BWV|HWV|SWV|SV|KV|K|RV|WAB|Hob|TWV|BuxWV|ZWV|Z|FW|MB|FVB|P)\.?[\s_]*(\d+)(?:-(\d+)(?=-))?',
+                              text or '', re.I):
+        lo, hi = int(a), int(b) if b else int(a)
+        out |= {k.lower() + str(n) for n in range(lo, hi + 1 if lo <= hi <= lo + 50 else lo + 1)}
     return out
 
 
@@ -338,9 +435,12 @@ def score_path(file, s=None):
 
 def place_pdf(row, data, s=None):
     """Put a PDF added in the planner into the first score folder, named by the 'file new pdfs' rule (or as it
-    came). -> its File path"""
+    came); organ music goes into the first organ folder, if there is one. -> its File path"""
     s = settings() if s is None else s
     folders = score_folders(s)
+    organ = [f for f in folders if os.path.realpath(f) in organ_folders(s)]
+    if organ and is_organ(row):
+        folders = organ + [f for f in folders if f not in organ]
     if not folders:
         raise ValueError('no score folder is set: add "score folders:" to parish/library/library.txt')
     if not data.startswith(b'%PDF'):
@@ -374,13 +474,17 @@ def folder_status(s=None):
     committed, so the launcher tells it again on each computer (serve.py's /api/ping)."""
     s = settings() if s is None else s
     found = score_folders(s)
-    return {'folders': bool(found), 'pdfs': pdfs(s=s) if found else {},
+    return {'folders': bool(found), 'pdfs': pdfs(shown(read()), s) if found else {},
             'unfound': [] if found else [os.path.expanduser(f) for f in _list(s.get('score folders'), r';')]}
+
+
+def rows_for_page(rows=None):
+    return shown(read() if rows is None else rows)
 
 
 def page_data():
     s = settings()
-    return {'rows': read(), **folder_status(s), 'pdfs': {}, 'seasons': list(SEASONS), 'formats': list(FORMATS),
+    return {'rows': shown(read()), **folder_status(s), 'pdfs': {}, 'seasons': list(SEASONS), 'formats': list(FORMATS),
             'where': os.path.relpath(catalog_file(s), paths.HOME).replace(os.sep, '/')
             if catalog_file(s).startswith(paths.HOME) else catalog_file(s)}
 

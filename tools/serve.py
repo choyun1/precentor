@@ -199,12 +199,12 @@ def api_library_add(data):
 
 
 def api_library_from_record(data):
-    """Start (or add to) the library from every anthem already sung."""
+    """Start (or add to) the library from every anthem and organ piece already done."""
     import library
     rows, n = library.from_record()
     if n:
         _save_library(rows, f'Library: {n} pieces from the record')
-    return {'ok': True, 'added': n, 'rows': rows}
+    return {'ok': True, 'added': n, 'rows': library.rows_for_page(rows)}
 
 
 def api_library_scan(data):
@@ -224,7 +224,7 @@ def api_library_keep(data):
             rows, _, new = library.add(row, rows)
             n += new
     _save_library(rows, f'Library: {n} new PDFs from the score folders')
-    return {'ok': True, 'added': n, 'rows': rows}
+    return {'ok': True, 'added': n, 'rows': library.rows_for_page(rows)}
 
 
 def api_score(data):
