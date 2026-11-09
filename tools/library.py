@@ -213,9 +213,9 @@ def season_of(dates):
 
 
 def unknown(title):
-    """A placeholder such as '???' or 'TBD' (the anthem not yet chosen), not a piece."""
-    t = re.sub(r'[\s?.\-–—]', '', split_piece(title or '')[0])
-    return not t or t.lower() in ('tbd', 'tba')
+    """A placeholder such as '???' or 'TBD' (the anthem not yet chosen, or parish.txt's "not music:"), not a piece."""
+    import service
+    return service.placeholder(split_piece(title or '')[0])
 
 
 def from_record(rows=None, repertoire=None):

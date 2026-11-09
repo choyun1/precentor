@@ -324,7 +324,7 @@ def service_data():
         if a.get('key'):
             lect[d] = [a['key'], a['year'], a['label'], lectionary.link(dt.date.fromisoformat(d), a['key'])]
     import plugins, library
-    return {'lect': lect, 'colors': colors, 'seasons': seasons, 'library': library.page_data(), 'shades': lectionary.shades(), 'orders': service.ORDERS, 'hymnals': service.hymnals(), 'repertoire': service.repertoire(),
+    return {'lect': lect, 'colors': colors, 'seasons': seasons, 'library': library.page_data(), 'shades': lectionary.shades(), 'orders': service.ORDERS, 'hymnals': service.hymnals(), 'repertoire': service.repertoire(), 'notMusic': service.not_music(),
             'hymnHistory': service.hymn_history(), 'anthems': service.anthems(), 'byDate': by_date,
             'lessons': service.lessons(), 'meta': service.META,
             'plugins': plugins.data(), 'pluginKeys': sorted(plugins.sunday_keys()),

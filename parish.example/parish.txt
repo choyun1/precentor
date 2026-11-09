@@ -15,3 +15,6 @@ christmas_eve: christmas1 christmas2 christmas3
 christmas_day: christmas2 christmas1 christmas3
 # Psalm verses the lectionary prints in brackets: "sing" or "leave out" by default.
 optional_verses: sing
+# Words written in a piece's place that aren't music (besides ??? and TBD), e.g. for a cancelled service:
+# they're left out of the music library and the suggestions.
+# not music:   SNOW DAY, no service

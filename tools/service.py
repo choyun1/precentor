@@ -465,6 +465,21 @@ def schedule_rows():
     return rows
 
 
+def placeholder(item):
+    """Not a piece: '???', 'TBD', or a word a parish writes in a piece's place (parish.txt "not music:", say
+    SNOW DAY for a service that was cancelled)."""
+    import lectionary
+    t = re.sub(r'[\s?.\-–—]', '', str(item or '')).lower()
+    words = {re.sub(r'[\s?.\-–—]', '', w).lower() for w in lectionary.PARISH.get('not music', '').split(',')}
+    return not t or t in ({'tbd', 'tba'} | words - {''})
+
+
+def not_music():
+    """parish.txt "not music:", for the page."""
+    import lectionary
+    return [w.strip() for w in lectionary.PARISH.get('not music', '').split(',') if w.strip()]
+
+
 def family(key, kind):
     return 'anthem' if kind == 'anthem' else 'organ' if key in ('prelude', 'postlude') else key
 
@@ -473,7 +488,7 @@ def repertoire():
     """Everything done before, by family (organ, anthem, preces…): {family: [[item, [dates]], ...]}."""
     out = {}
     for r in schedule_rows():
-        if r['kind'] in ('psalm', 'hymn', 'service') or r['key'] == 'also' or hymns(r['item']):
+        if r['kind'] in ('psalm', 'hymn', 'service') or r['key'] == 'also' or hymns(r['item']) or placeholder(r['item']):
             continue
         out.setdefault(family(r['key'], r['kind']), {}).setdefault(r['item'].strip(), set()).add(r['date'])
     return {f: sorted(([item, sorted(ds)] for item, ds in v.items()), key=lambda x: x[1][-1], reverse=True)

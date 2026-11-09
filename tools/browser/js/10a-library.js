@@ -76,7 +76,9 @@ function libHint(v) {
 }
 // the PDF of a piece on this computer (the launcher matches the score folders' files to the library: /api/ping)
 const libPdf = r => SERVER && LIB.folders ? (LIB.pdfs || {})[libPiece(r)] || "" : "";
-const libReal = r => !/^(|tbd|tba)$/i.test(String(r.Title || "").replace(/[\s?.\-–—]/g, ""));   // not "???" or "TBD"
+// not "???" or "TBD", nor a parish's "not music:" (parish.txt), such as SNOW DAY
+const NOT_MUSIC = new Set(["", "tbd", "tba"].concat((SV.notMusic || []).map(w => w.toLowerCase().replace(/[\s?.\-–—]/g, ""))));
+const libReal = r => !NOT_MUSIC.has(String(r.Title || "").toLowerCase().replace(/[\s?.\-–—]/g, ""));
 async function libOpen(i) {
   const j = await post("/api/score", {file: libPdf(LIB.rows[i])});
   if (!j.ok) alert(j.error || "could not open it");
@@ -131,7 +133,7 @@ function libFor(r) {
   return ORGAN_WORDS.test(r.Title) && !VOICES.test(r.Title) ? "organ" : "choir";
 }
 const FOR_NAMES = {choir: "Choir", organ: "Organ"};
-const LV = {q: "", only: ""};
+const LV = {q: "", only: "", shown: 100, key: ""};   // shown: how many rows the list shows (100 more at a time)
 const SEASON_ORDER = ["advent", "christmas", "epiphany", "lent", "holy_week", "easter", "pentecost", ""];
 const libLast = r => { const s = libSung(r); return s.length ? s[s.length - 1] : ""; };
 // each field: its label, its usual direction, the value to sort on (empty: last, whichever way)
@@ -203,10 +205,13 @@ function renderLibrary() {
   const q = normT(LV.q), real = LIB.rows.filter(libReal);
   const hits = real.filter(r => (!LV.only || libFor(r) === LV.only) && (!q || normT(libPiece(r) + " " + r.Occasion + " " + r.Voicing + " " + r.Location + " " + (r.Tags || "") + " " + (SEASON_NAMES[r.Season] || "")).includes(q)))
     .sort(libCompare);
+  const key = JSON.stringify([LV.q, LV.only, LV.levels]);
+  if (key !== LV.key) { LV.key = key; LV.shown = 100; }   // a new search, filter or sort starts at the top again
+  const more = hits.length - LV.shown;
   const where = hits.some(r => libWhere(r)), date = B.date && SERVER ? B.date : "", first = LV.levels[0];
   const cols = [["title", "Title"], ["composer", "Composer"], ["for", "For"], ["season", "Season"], ...(where ? [["where", "Where"]] : []), ["sung", "Sung"]];
   const th = ([f, label]) => `<th class="sortable${f === "where" ? " libwhere" : ""}${first.f === f ? " on" : ""}" title="sort by this; again for the other way round" onclick="libSortBy('${f}')">${label}${first.f === f ? (first.d > 0 ? " ▲" : " ▼") : ""}</th>`;
-  const rows = hits.map(r => {
+  const rows = hits.slice(0, LV.shown).map(r => {
     const sung = libSung(r), i = LIB.rows.indexOf(r), pdf = libPdf(r), fr = libFor(r);
     return `<tr><td>${pdf ? `<span class="link" title="open the PDF" onclick="libOpen(${i})">${esc(r.Title)}</span> <span class="hint">PDF</span>` : esc(r.Title)}
         ${date ? ` <span class="link hint" title="put it in the first empty ${fr === "organ" ? "prelude or postlude" : "anthem slot"} of the service for ${esc(date)}" onclick="libUse(${i})">+ service</span>` : ""}</td>
@@ -223,9 +228,10 @@ function renderLibrary() {
         ${nOrgan ? `<div class="seg" style="max-width:340px;margin-top:6px">${seg("", "All")}${seg("choir", "Choir")}${seg("organ", "Organ")}</div>` : ""}
         <p class="hint" style="margin:6px 0 0">${hits.length === real.length ? real.length + " pieces" : hits.length + " of " + real.length + " pieces"}${Object.keys(LIB.pdfs || {}).length ? ` · ${Object.keys(LIB.pdfs).length} with a PDF on this computer` : ""}</p></div>
       ${libSortControl()}</div>
+    ${tools ? `<p style="margin:0 0 8px">${tools}</p>` : ""}${libScanCard()}
     <div id="libtable">${rows ? `<table class="libtable"><tr>${cols.map(th).join("")}</tr>${rows}</table>` : '<p class="hint">Nothing matches.</p>'}</div>
-    <p class="hint" style="margin:8px 0 0">${date ? `“+ service” puts a piece in the first empty anthem slot (organ music: the prelude or postlude) of the service for ${esc(date)} in the Service planner. ` : ""}Organ or choir comes from a piece's Voicing (“organ” alone is organ); without one, it's guessed from the title. Kept in ${esc(LIB.where)}${LIB.rows.some(r => r.From) ? "; some pieces, seasons and organ music come from a plugin (change them where it reads them)" : ""}.</p>
-    ${tools ? `<p style="margin:8px 0 0">${tools}</p>` : ""}${libScanCard()}</div>`;
+    ${more > 0 ? `<p style="margin:8px 0 0"><span class="hint">Showing ${LV.shown} of ${hits.length}.</span> <button class="small" onclick="LV.shown+=100; renderLibrary()">Show next ${Math.min(100, more)}</button> <button class="small" onclick="LV.shown=Infinity; renderLibrary()">Show all</button></p>` : ""}
+    <p class="hint" style="margin:8px 0 0">${date ? `“+ service” puts a piece in the first empty anthem slot (organ music: the prelude or postlude) of the service for ${esc(date)} in the Service planner. ` : ""}Organ or choir comes from a piece's Voicing (“organ” alone is organ); without one, it's guessed from the title. Kept in ${esc(LIB.where)}${LIB.rows.some(r => r.From) ? "; some pieces, seasons and organ music come from a plugin (change them where it reads them)" : ""}.</p></div>`;
 }
 function libRefresh() {
   const pos = $("#libq") ? $("#libq").selectionStart : null;
@@ -258,7 +264,7 @@ function libScanCard() {
   const s = B.libScan; if (!s) return "";
   if (!s.new.length && !s.moved.length && !s.missing.length) return `<p class="hint">The score folders and the library agree: nothing new.</p>`;
   const opt = cur => `<option value="">any time</option>` + LIB.seasons.map(x => `<option value="${x}" ${x === cur ? "selected" : ""}>${esc(SEASON_NAMES[x] || x)}</option>`).join("");
-  return `<div style="margin-top:10px"><b style="font-weight:normal">In the score folders:</b>
+  return `<div style="margin:10px 0"><b style="font-weight:normal">In the score folders:</b>
     ${s.new.length ? `<p class="hint" style="margin:4px 0">${s.new.length} new PDFs, read from their names: check them, then keep.</p>
       <table class="libtable"><tr><th></th><th>Composer</th><th>Title</th><th>Season</th><th>File</th></tr>${s.new.map((r, i) => `<tr>
         <td><input type="checkbox" id="lk-${i}" checked></td><td><input type="text" id="lkc-${i}" value="${esc(r.Composer)}"></td>
