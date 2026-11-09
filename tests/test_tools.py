@@ -700,6 +700,33 @@ class Library(unittest.TestCase):
                 self.L.place_pdf(row, data, s)
         self.assertNotIn('/', self.L.place_pdf(self.L.clean({'Title': '../../x', 'Composer': 'a/b'}), b'%PDF', s))
 
+    def test_a_pdf_for_a_piece_already_in_the_library(self):
+        """Add its PDF, under a piece added (or done here) before without one: the row gets its File."""
+        from unittest import mock
+        import serve, base64
+        rows = self.rows({'Title': 'Vigilate', 'Composer': 'William Byrd', 'Years': '1543-1623', 'Season': 'advent'})
+        s, saved = {'score folders': self.d, 'file new pdfs': '{composer}-{catalog}-{title}.pdf'}, []
+        with mock.patch.object(self.L, 'settings', return_value=s), mock.patch.object(self.L, 'read', return_value=rows), \
+                mock.patch.object(serve, '_save_library', lambda r, m: saved.append(m)):
+            j = serve.api_library_add({'row': {'Title': 'Vigilate', 'Composer': 'William Byrd', 'Years': '1543-1623'},
+                                       'pdf': base64.b64encode(b'%PDF-1.4').decode()})
+            self.assertEqual((j['new'], j['row']['File'], j['row']['Season']), (False, 'William_Byrd-Vigilate.pdf', 'advent'))
+            self.assertEqual(len(rows), 1)
+            self.assertTrue(os.path.exists(os.path.join(self.d, 'William_Byrd-Vigilate.pdf')))
+            with self.assertRaises(ValueError):                         # it has one now
+                serve.api_library_add({'row': {'Title': 'Vigilate', 'Composer': 'Byrd'}, 'pdf': base64.b64encode(b'%PDF').decode()})
+
+    def test_a_choir_piece_played_on_the_organ(self):
+        self.assertTrue(self.L.is_organ({'Voicing': 'SATB, played on organ'}))
+        self.assertFalse(self.L.is_organ({'Voicing': 'SATB, organ'}))
+
+    def test_two_pieces_in_one_cell_of_the_record(self):
+        """'; ' inside brackets ('(192; EH1982)') doesn't part two pieces: it once put '; EH1982)' in Bach's name."""
+        import service
+        self.assertEqual(service.outside_brackets('O Jesu Christ, BWV 118 - J. S. Bach (1685-1750); Communion anthem: This joyful Eastertide (192; EH1982)'),
+                         ['O Jesu Christ, BWV 118 - J. S. Bach (1685-1750)', 'Communion anthem: This joyful Eastertide (192; EH1982)'])
+        self.assertEqual(service.outside_brackets('A; B'), ['A', 'B'])
+
     def test_settings_and_round_trip(self):
         import library
         open(os.path.join(self.d, 'library.txt'), 'w').write('# a comment\nscore folders: C:\\Music\\Sacred; D:/More   # two\n')

@@ -304,6 +304,20 @@ def schedule():
 LABELED = re.compile(r"^([A-Z][\w' &]+?):\s+(.+)$")
 
 
+def outside_brackets(item):
+    """'A - Bach (1685-1750); Communion anthem: B (192; EH1982)' -> its two pieces: split at each '; ' that isn't
+    inside brackets."""
+    parts, depth, cur = [], 0, ''
+    for i, ch in enumerate(item):
+        depth += (ch in '([') - (ch in ')]')
+        if ch == ';' and depth <= 0 and item[i + 1:i + 2].isspace():
+            parts.append(cur)
+            cur, depth = '', 0
+            continue
+        cur += ch
+    return [p.strip() for p in parts + [cur]]
+
+
 def legacy_items(order, rows):
     """One date of the imported record (schedule.csv) -> (key, value) lines of the given order of service."""
     sl = slots(order)
@@ -314,7 +328,7 @@ def legacy_items(order, rows):
         if not item or item.upper() == 'N/A' or col == 'Psalm':
             continue
         segs = []
-        for part in re.split(r';\s+', item):
+        for part in outside_brackets(item):
             segs += re.split(r",\s+(?=[A-Z][\w' ]*hymns?:\s)", part)
         cands = [s for s in sl if col in s['columns']]
         loose = []
