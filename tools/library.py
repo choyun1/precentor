@@ -406,6 +406,8 @@ def pdfs(rows=None, s=None):
 def is_organ(row):
     """Organ alone, by its Voicing (as the planner's library tab reads it)."""
     v = row.get('Voicing') or ''
+    if re.search(r'\bplayed on (the )?organ\b', v, re.I):         # a choir piece played on the organ
+        return True
     return bool(re.search(r'\b(organ|keyboard|piano|harpsichord)\b', v, re.I)) and not re.search(
         r'\b(s?a?t?b|satb|ssa|sab|ttbb|ttb|unison|choir|voices?|treble|soprano|alto|tenor|bass|cantor)\b', v, re.I)
 

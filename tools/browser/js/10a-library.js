@@ -72,7 +72,23 @@ function libOptions(fam) {
 function libHint(v) {
   const r = libFind(v); if (!r) return "";
   const i = LIB.rows.indexOf(r);
-  return `<br><span class="hint">In the library${r.Season ? " (" + esc(SEASON_NAMES[r.Season] || r.Season) + ")" : ""}${libWhere(r) ? ": " + libWhere(r) : ""}</span>${libPdf(r) ? ` · <span class="link" onclick="libOpen(${i})">Open score</span>` : ""}`;
+  const attach = SERVER && LIB.folders ? ` · <label class="link" title="copy a PDF of it into your score folder">Add its PDF<input type="file" accept="application/pdf,.pdf" hidden onchange="libAttach(${i}, this)"></label>` : "";
+  return `<br><span class="hint">In the library${r.Season ? " (" + esc(SEASON_NAMES[r.Season] || r.Season) + ")" : ""}${libWhere(r) ? ": " + libWhere(r) : ""}</span>${libPdf(r) ? ` · <span class="link" onclick="libOpen(${i})">Open score</span>` : attach}`;
+}
+// a PDF read in the page, for /api/library/add (null: too big to send from here)
+async function libReadPdf(file) {
+  if (file.size > 14 * 1024 * 1024) { alert("That PDF is too big to send from here (over 14 MB): put it in the score folder and use Look for new PDFs."); return null; }
+  return new Promise(ok => { const fr = new FileReader(); fr.onload = () => ok(String(fr.result).split(",")[1]); fr.readAsDataURL(file); });
+}
+// "Add its PDF", under a piece already in the library without one
+async function libAttach(i, input) {
+  const r = LIB.rows[i], f = input.files && input.files[0]; if (!r || !f) return;
+  const pdf = await libReadPdf(f); if (!pdf) return;
+  const j = await post("/api/library/add", {row: {Title: r.Title, Composer: r.Composer, Years: r.Years}, pdf});
+  if (!j.ok) { alert(j.error || "could not add the PDF"); return; }
+  r.File = j.row.File; r.Format = r.Format || j.row.Format;
+  (LIB.pdfs = LIB.pdfs || {})[libPiece(r)] = j.row.File; libChanged();
+  renderBuilder();
 }
 // a title typed or picked without its composer: the composer (and dates) from the library, when only one piece
 // there has that title; else from what's been done before under it, when that's only one piece
@@ -139,21 +155,24 @@ async function libAdd(id) {
     Format: g("lf"), Voicing: g("lv").trim(), Location: g("ll").trim(), Copies: g("ln").trim(), "Publisher no.": g("lp").trim()};
   const f = ($("#lpdf-" + id) || {}).files, body = {row};
   if (f && f[0]) {
-    if (f[0].size > 14 * 1024 * 1024) { alert("That PDF is too big to send from here (over 14 MB): put it in the score folder and use Look for new PDFs."); return; }
-    body.pdf = await new Promise(ok => { const fr = new FileReader(); fr.onload = () => ok(String(fr.result).split(",")[1]); fr.readAsDataURL(f[0]); });
+    body.pdf = await libReadPdf(f[0]); if (!body.pdf) return;
     if (!row.Format) row.Format = "PDF";
   }
   const j = await post("/api/library/add", body);
   if (!j.ok) { alert(j.error || "could not add it"); return; }
-  const old = libFind(libPiece(j.row)); if (old) Object.assign(old, j.row); else LIB.rows.push(j.row); libChanged();
+  const old = libFind(libPiece(j.row)); if (old) Object.assign(old, j.row); else LIB.rows.push(j.row);
+  if (j.row.File) (LIB.pdfs = LIB.pdfs || {})[libPiece(j.row)] = j.row.File;    // so Open score shows now, not after a reload
+  libChanged();
   renderBuilder();
 }
 // ---------- the Music library tab ----------
 // organ alone, or the choir (with or without organ): from the Voicing, else guessed from the title
 const ORGAN_WORDS = /\b(voluntary|prelude|fugue|toccata|invention|trio|improvisation|organ|fantasia|postlude|chorale prelude|trumpet tune|partita|sortie|offertoire|carillon|almain|pavan|galliard)\b|\bBWV\s*[5-7]\d\d\b/i;
 const VOICES = /\b(s?a?t?b|satb|ssa|sab|ttbb|ttb|unison|choir|voices?|treble|soprano|alto|tenor|bass|cantor)\b/i;
+const ON_ORGAN = /\bplayed on (the )?organ\b/i;
 function libFor(r) {
   const v = String(r.Voicing || "");
+  if (ON_ORGAN.test(v)) return "organ";        // a choir piece played on the organ ("SATB, played on organ")
   if (v) return /\b(organ|keyboard|piano|harpsichord)\b/i.test(v) && !VOICES.test(v) ? "organ" : "choir";
   return ORGAN_WORDS.test(r.Title) && !VOICES.test(r.Title) ? "organ" : "choir";
 }
@@ -256,7 +275,7 @@ function renderLibrary() {
     ${tools ? `<p style="margin:0 0 8px">${tools}</p>` : ""}${libScanCard()}
     <div id="libtable">${rows ? `<table class="libtable"><tr>${cols.map(th).join("")}</tr>${rows}</table>` : '<p class="hint">Nothing matches.</p>'}</div>
     ${more > 0 ? `<p style="margin:8px 0 0"><span class="hint">Showing ${LV.shown} of ${hits.length}.</span> <button class="small" onclick="LV.shown+=100; renderLibrary()">Show next ${Math.min(100, more)}</button> <button class="small" onclick="LV.shown=Infinity; renderLibrary()">Show all</button></p>` : ""}
-    <p class="hint" style="margin:8px 0 0">${date ? `“+ service” puts a piece in the first empty anthem slot (organ music: the prelude or postlude) of the service for ${esc(date)} in the Service planner. ` : ""}Organ or choir comes from a piece's Voicing (“organ” alone is organ); without one, it's guessed from the title. Kept in ${esc(LIB.where)}${LIB.rows.some(r => r.From) ? "; some pieces, seasons and organ music come from a plugin (change them where it reads them)" : ""}.</p></div>`;
+    <p class="hint" style="margin:8px 0 0">${date ? `“+ service” puts a piece in the first empty anthem slot (organ music: the prelude or postlude) of the service for ${esc(date)} in the Service planner. ` : ""}Organ or choir comes from a piece's Voicing (“organ” alone is organ, and so is a choir piece “played on organ”); without one, it's guessed from the title. Kept in ${esc(LIB.where)}${LIB.rows.some(r => r.From) ? "; some pieces, seasons and organ music come from a plugin (change them where it reads them)" : ""}.</p></div>`;
 }
 function libRefresh() {
   const pos = $("#libq") ? $("#libq").selectionStart : null;
