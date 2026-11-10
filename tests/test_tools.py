@@ -717,8 +717,11 @@ class Library(unittest.TestCase):
                 serve.api_library_add({'row': {'Title': 'Vigilate', 'Composer': 'Byrd'}, 'pdf': base64.b64encode(b'%PDF').decode()})
 
     def test_a_choir_piece_played_on_the_organ(self):
-        self.assertTrue(self.L.is_organ({'Voicing': 'SATB, played on organ'}))
+        self.assertTrue(self.L.is_organ({'Voicing': 'SATB', 'Used as': 'organ'}))
+        self.assertFalse(self.L.is_organ({'Voicing': 'organ', 'Used as': 'both'}))   # not organ alone: the choir's too
         self.assertFalse(self.L.is_organ({'Voicing': 'SATB, organ'}))
+        with self.assertRaises(ValueError):
+            self.L.clean({'Title': 'x', 'Used as': 'harp'})
 
     def test_two_pieces_in_one_cell_of_the_record(self):
         """'; ' inside brackets ('(192; EH1982)') doesn't part two pieces: it once put '; EH1982)' in Bach's name."""
@@ -726,6 +729,49 @@ class Library(unittest.TestCase):
         self.assertEqual(service.outside_brackets('O Jesu Christ, BWV 118 - J. S. Bach (1685-1750); Communion anthem: This joyful Eastertide (192; EH1982)'),
                          ['O Jesu Christ, BWV 118 - J. S. Bach (1685-1750)', 'Communion anthem: This joyful Eastertide (192; EH1982)'])
         self.assertEqual(service.outside_brackets('A; B'), ['A', 'B'])
+
+    def test_add_and_edit_by_id(self):
+        """One form adds a piece (it gets an ID) and changes it (every field as sent); what a slot called it is
+        linked to it, so the record finds it under that name."""
+        from unittest import mock
+        import serve
+        cat, saved = os.path.join(self.d, 'catalog.csv'), []
+        with mock.patch.object(self.L, 'catalog_file', return_value=cat), mock.patch.object(self.L, 'settings', return_value={}), \
+                mock.patch.object(self.L, 'plugin_save', return_value=None), mock.patch.object(self.L, 'shown', side_effect=lambda r: r), \
+                mock.patch.object(serve, 'rebuild_later', lambda *a: None):
+            j = serve.api_library_save({'row': {'Title': 'Wachet auf, ruft uns die Stimme a 2', 'Composer': 'Michael Praetorius',
+                                                'Season': 'pentecost', 'Voicing': 'organ'}, 'record': 'Wachet auf - Praetorius'})
+            self.assertEqual((j['new'], j['row']['ID']), (True, 'L0001'))
+            self.assertEqual(j['links'], {'Wachet auf - Praetorius': 'L0001'})
+            j = serve.api_library_save({'row': dict(j['row'], Season='advent', Voicing='ST', **{'Used as': 'both'})})
+            self.assertEqual((j['new'], j['row']['Season'], j['row']['Voicing'], j['row']['Used as']), (False, 'advent', 'ST', 'both'))
+            rows = self.L.read(cat)
+            self.assertEqual(len(rows), 1)
+            self.assertIs(self.L.find(rows, 'Wachet auf - Praetorius', self.L.links()), self.L.find(rows, 'Wachet auf, ruft uns die Stimme a 2'))
+            j = serve.api_library_save({'row': dict(j['row'], Occasion='')})              # a field emptied stays empty
+            j = serve.api_library_save({'row': {'Title': 'Ave verum corpus', 'Composer': 'Byrd'}})
+            self.assertEqual(j['row']['ID'], 'L0002')
+
+    def test_a_plugin_keeps_the_piece(self):
+        """library_save: the plugin keeps a new piece and its PDF in its own catalog; this one keeps the rest,
+        under the plugin's ID (a piece of ours given a PDF there takes its ID, and its links follow)."""
+        from unittest import mock
+        import serve, base64
+        cat = os.path.join(self.d, 'catalog.csv')
+        self.L.write(self.rows({'Title': 'Vigilate', 'Composer': 'Byrd', 'Copies': '20'}), cat)
+        self.L.write_links({'Vigilate - Byrd (1543-1623)': 'L0001'}, os.path.join(self.d, 'links.csv'))
+        got = []
+        def keep(row, pdf):
+            got.append((row['ID'], pdf))
+            return dict(row, ID='P0567', File='Library/Byrd-Vigilate.pdf', Format='PDF'), ['check: all fine']
+        with mock.patch.object(self.L, 'catalog_file', return_value=cat), mock.patch.object(self.L, 'settings', return_value={}), \
+                mock.patch.object(self.L, 'plugin_save', side_effect=keep), mock.patch.object(self.L, 'shown', side_effect=lambda r: r), \
+                mock.patch.object(serve, 'rebuild_later', lambda *a: None):
+            j = serve.api_library_save({'row': dict(self.L.read(cat)[0]), 'pdf': base64.b64encode(b'%PDF').decode()})
+        self.assertEqual(got, [('L0001', b'%PDF')])
+        self.assertEqual((j['row']['ID'], j['row']['File'], j['row']['Copies'], j['said']), ('P0567', 'Library/Byrd-Vigilate.pdf', '20', ['check: all fine']))
+        self.assertEqual([r['ID'] for r in self.L.read(cat)], ['P0567'])
+        self.assertEqual(self.L.links(os.path.join(self.d, 'links.csv')), {'Vigilate - Byrd (1543-1623)': 'P0567'})
 
     def test_settings_and_round_trip(self):
         import library

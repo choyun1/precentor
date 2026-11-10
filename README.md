@@ -197,7 +197,7 @@ LORD, GOD and YAHWEH are set in small capitals automatically, and straight quote
 | `chant_notes.csv` | Your ratings, mood tags and notes on every chant. |
 | `chants/` | Chants you may not publish (still under copyright), with their own `catalog.csv`. |
 | `anthems/`, `hymnals/`, `hymn_titles.csv`, `lessons.csv` | Anthem words, hymnal indexes, your hymn titles, readings for Lessons and Carols. |
-| `library/` | The music library (optional): `catalog.csv`, one row per piece (a PDF, octavos or a book; its season, where the copies are), and `library.txt`, how you keep your music. Start it from what's been sung and played, add pieces from an anthem, prelude or postlude box, or point it at folders of PDFs (`organ folders:` for organ music; `python tools/library.py`). |
+| `library/` | The music library (optional): `catalog.csv`, one row per piece (a PDF, octavos or a book; its season, where the copies are), and `library.txt`, how you keep your music. Start it from what's been sung and played, add or edit pieces from an anthem, prelude or postlude box (or Edit in the Music library tab), or point it at folders of PDFs (`organ folders:` for organ music; `python tools/library.py`). Each piece has an ID; `links.csv` says which piece the record means when it names one another way. |
 | `schedule/schedule.csv` | Past services brought in from elsewhere (date, occasion, organist, slot, item), read with the Sunday files. |
 | `plugins/` | Your own additions to the planner (below). |
 | `output/`, `site/` | What the build makes, and Precentor built for your parish. |
