@@ -19,7 +19,8 @@
 #(define dagger-gap 0.35)                      % space between the dagger and the verse number
 
 %% ---------- verse layout ----------
-#(define verse-number-size -1)                 % font-size step for verse numbers (0 = same as text)
+#(define text-size 13)                         % size of the psalm text in points (LilyPond's own is 11)
+#(define verse-number-size -0.85)              % font-size step for verse numbers, against the text (0 = same; -0.85 is 11.8 pt beside 13)
 #(define line-spacing 3.55)                    % baseline to baseline within a verse (LilyPond default 3.0)
 #(define verse-gap 0.55)                       % blank space between verses, in text lines (was 1.0 = \null)
 #(define verse-padding 2.9)                    % blank space between verses when each verse is its own block
@@ -47,7 +48,7 @@
 
 %% ---------- dagger (verse sung to the second half of a double chant again) ----------
 #(define dagger-raise 0.25)
-#(define dagger-size -1)
+#(define dagger-size -0.85)                    % font-size step, against the text (as the verse numbers)
 
 %% =====================================================================
 %% implementation — no need to edit below this line
@@ -114,6 +115,15 @@
            (markup #:bold #:concat (pre vow post))
            (markup #:concat (pre #:stencil v2 post))))))
 
+%% the verse lines, set at text-size: everything in them (letters, bars, brackets, spacing) grows together,
+%% while the left edge stays where left-indent puts it
+#(define text-scale (/ text-size 11))
+#(define-markup-command (psalmtext layout props lines) (markup-list?)
+   (let ((st (interpret-markup layout props
+               (make-override-markup (cons 'baseline-skip line-spacing) (make-column-markup lines)))))
+     (ly:stencil-translate-axis (ly:stencil-scale st text-scale text-scale)
+                                (* left-indent (- 1 text-scale)) X)))
+
 #(define-markup-command (vnum layout props n) (markup?)
    (interpret-markup layout props (markup #:fontsize verse-number-size n)))
 
@@ -162,7 +172,7 @@ cross = \markup \psalmdagger
                        #:hspace title-gap #:italic latin))))
 
 \paper {
-  markup-markup-spacing = #`((basic-distance . 0) (minimum-distance . 0) (padding . ,verse-padding))
+  markup-markup-spacing = #`((basic-distance . 0) (minimum-distance . 0) (padding . ,(* verse-padding text-scale)))
   score-markup-spacing = #'((basic-distance . 2) (padding . 1.5))
   markup-system-spacing = #'((basic-distance . 2) (padding . 1.5))
 }
