@@ -195,19 +195,22 @@ def verse_lines(v):
 
 def verse_markup(v):
     """One verse as its own block (page breaks fall between verses)."""
-    return '\\markup { \\override #(cons \'baseline-skip line-spacing) \\column {\n' + '\n'.join(verse_lines(v)) + '\n} }'
+    return '\\markup \\psalmtext {\n' + '\n'.join(verse_lines(v)) + '\n}'
 
 
 def single_block(blocks_title, verses):
     """Title (optional) and verses in one markup: used for images, which must not be split."""
     rows = []
-    if blocks_title:
-        rows += ['  ' + blocks_title, '  \\vspace #(* 0.5 verse-gap)']
     for i, v in enumerate(verses):
         if i:
             rows.append('  \\versegap')
         rows += verse_lines(v)
-    return '\\markup { \\override #(cons \'baseline-skip line-spacing) \\column {\n' + '\n'.join(rows) + '\n} }'
+    text = '\\psalmtext {\n' + '\n'.join(rows) + '\n}'
+    if not blocks_title:
+        return '\\markup ' + text
+    # the title stays its own size; only the verses are set at text-size
+    return ('\\markup { \\override #(cons \'baseline-skip line-spacing) \\column {\n  ' + blocks_title +
+            '\n  \\vspace #(* 0.5 verse-gap)\n' + text + '\n} }')
 
 
 def title_line(doc, show_latin=True):

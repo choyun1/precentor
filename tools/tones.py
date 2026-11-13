@@ -439,13 +439,16 @@ def verse_lines(pv):
 
 def single_block(title, pvs):
     rows = []
-    if title:
-        rows += ['  ' + title, '  \\vspace #(* 0.5 verse-gap)']
     for i, pv in enumerate(pvs):
         if i:
             rows.append('  \\versegap')
         rows += verse_lines(pv)
-    return '\\markup { \\override #(cons \'baseline-skip line-spacing) \\column {\n' + '\n'.join(rows) + '\n} }'
+    text = '\\psalmtext {\n' + '\n'.join(rows) + '\n}'
+    if not title:
+        return '\\markup ' + text
+    # the title stays its own size; only the verses are set at text-size
+    return ('\\markup { \\override #(cons \'baseline-skip line-spacing) \\column {\n  ' + title +
+            '\n  \\vspace #(* 0.5 verse-gap)\n' + text + '\n} }')
 
 
 def verse_markup(pv):
@@ -461,7 +464,7 @@ def verse_markup(pv):
             else:
                 lead = "\\ind #'second"
             lines.append('  \\line { %s %s }' % (lead, body))
-    return '\\markup { \\override #(cons \'baseline-skip line-spacing) \\column {\n' + '\n'.join(lines) + '\n} }'
+    return '\\markup \\psalmtext {\n' + '\n'.join(lines) + '\n}'
 
 
 # ------------------------------------------------------------- notation
