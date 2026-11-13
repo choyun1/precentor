@@ -935,10 +935,10 @@ class Server(unittest.TestCase):
 
 class ImportedRecord(unittest.TestCase):
     def test_every_acp_number_of_a_chant(self):
-        """'ACP 001, 107, 181' once gave only ACP 1, so a record of ACP 181 went to whichever chant had it first."""
+        """'ACP 005, 107, 181' once gave only ACP 5, so a record of ACP 181 went to whichever chant had it first."""
         import browser
         acp = browser.acp_numbers()
-        self.assertEqual(acp[1], ('Battishill-1', '1'))
+        self.assertEqual(acp[5], ('Battishill-1', '3'))
         self.assertEqual(acp[181], ('Battishill-1', '80'))
         self.assertEqual(acp[182], ('Davies-2', '80'))
         self.assertEqual(acp[132], ('Elgar-1', '59'))
