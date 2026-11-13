@@ -12,7 +12,7 @@ global = {
 
 
 S_notes = \relative g' {
-  a2 | b4 gis | a2 \bar "||"
+  c2 | b4 gis | a2 \bar "||"
   e2 | f4 d | e e | e2 | \bar "||"
 }
 

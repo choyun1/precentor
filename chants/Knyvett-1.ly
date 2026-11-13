@@ -20,7 +20,7 @@ S_notes = \relative g' {
 
 A_notes = \relative c' {
   c2 | c4 c | f2 \bar "||"
-  a2 | d,8 e f4 | e d | e2 | \bar "||"
+  f2 | d8 e f4 | e d | e2 | \bar "||"
   c2 | bes4 d | c2 \bar "||"
   g'2 | f4 d | c c | c2 | \bar "||"
 }
