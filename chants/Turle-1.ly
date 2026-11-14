@@ -15,7 +15,7 @@ S_notes = \relative g' {
   fis2 | g4 fis | e2 \bar "||"
   b'2 | e,4 a | a gis | a2 | \bar "||"
   ais2 | b4 cis | d2 \bar "||"
-  g,2 | g4 f | e e | d2 | \bar "||"
+  g,2 | g4 fis | e e | d2 | \bar "||"
 }
 
 A_notes = \relative c' {
