@@ -47,14 +47,26 @@ def events(notes):
              [m21pitch(h) for h in (n if isinstance(n, list) else [n])]) for n in notes]
 
 
+def gaps(notes):
+    """Does the voice fall silent anywhere (a rest, or cue-size notes only)?"""
+    evs = events(notes)
+    return evs[0][0] > 0 or any(b[0] > a[0] + a[1] for a, b in zip(evs, evs[1:]))
+
+
 def line(evs, ts, ks, phrases, cls=None):
     s = (cls or stream.Part)()
     s.append(ks)
     s.append(meter.TimeSignature(ts))
-    for _, d, ps in evs:
+    at = F(0)
+    for st, d, ps in evs:
+        if st > at:                                  # a silent stretch (a rest, or cue-size notes only)
+            r = note.Rest()
+            r.duration = duration.Duration(float((st - at) * 4))
+            s.append(r)
         el = chord.Chord(ps) if len(ps) > 1 else note.Note(ps[0])
         el.duration = duration.Duration(float(d * 4))
         s.append(el)
+        at = st + d
     m = s.makeMeasures()
     m.makeTies(inPlace=True)
     ms, at = list(m.getElementsByClass(stream.Measure)), 0
@@ -82,6 +94,8 @@ def write(c, ts, how):
         staves = []
         for hi, lo in (('S_notes', 'A_notes'), ('T_notes', 'B_notes')):
             if how == 'closed':
+                if any(gaps(V[x][0]) for x in (hi, lo)):
+                    return None                      # a voice resting in a closed staff reads as singing the other's notes
                 st = stream.PartStaff()
                 a, b = line(events(V[hi][0]), ts, ks, V[hi][1]), line(events(V[lo][0]), ts, ks, V[lo][1])
                 for ma, mb in zip(a.getElementsByClass(stream.Measure), b.getElementsByClass(stream.Measure)):
