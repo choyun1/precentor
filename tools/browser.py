@@ -7,7 +7,7 @@
 Reads the chants and catalogs (chants/, parish/chants/), parish/chant_notes.csv, texts/, moods.txt,
 parish/legacy/history.csv and parish/sundays/. Writes parish/site/ (or site/ without a parish folder).
 """
-import argparse, csv, glob, json, os, re, shutil, subprocess, sys, tempfile
+import argparse, csv, glob, json, os, re, shutil, subprocess, sys, tempfile, urllib.parse
 
 TOOLS = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(TOOLS)
@@ -448,6 +448,14 @@ def tones_data(redraw=False):
 PAGE = os.path.join(TOOLS, 'browser')       # the page: page.html, style.css and js/*.js, put together into one file
 
 
+def icon_href():
+    """The browser-tab icon, docs/brand/icon-small.svg, as a data: address. Every # (the colors) must be
+    percent-encoded: a bare one starts the fragment, so the browser would get the SVG only up to the first color."""
+    svg = re.sub(r'<!--.*?-->', '', paths.read(os.path.join(ROOT, 'docs', 'brand', 'icon-small.svg')), flags=re.S)
+    svg = re.sub(r'>\s+<', '><', svg.strip())
+    return 'data:image/svg+xml,' + urllib.parse.quote(svg, safe=' /:=;,.()@-')
+
+
 def page_html():
     """index.html: page.html with style.css, the scripts in js/ (in the order of their numbers; they share one
     scope, so a later file may use what an earlier one defines) and the parish's plugin scripts, inline."""
@@ -456,7 +464,7 @@ def page_html():
     js = ''.join(f'\n// ===== {f} =====\n' + read('js', f) for f in sorted(os.listdir(os.path.join(PAGE, 'js'))) if f.endswith('.js'))
     fonts = os.path.relpath(os.path.join(ROOT, 'style', 'fonts'), SITE).replace(os.sep, '/')
     safe = lambda t: t.replace('</script', '<\\/script')
-    return (read('page.html').replace('/*STYLE*/', read('style.css').replace('../style/fonts', fonts))
+    return (read('page.html').replace('/*ICON*/', icon_href()).replace('/*STYLE*/', read('style.css').replace('../style/fonts', fonts))
             .replace('/*SCRIPT*/', safe(js)).replace('/*PLUGINS*/', safe(plugins.scripts())))
 
 

@@ -838,6 +838,20 @@ class Setup(unittest.TestCase):
             subprocess.run(['rm', '-rf', os.path.dirname(d)])
 
 
+class Page(unittest.TestCase):
+    def test_tab_icon_has_no_bare_hash(self):
+        # a bare # in a data: address starts the fragment, so the browser got the SVG only up to its first color
+        # and showed no icon in the tab
+        import browser, urllib.parse
+        href = browser.icon_href()
+        self.assertTrue(href.startswith('data:image/svg+xml,'))
+        self.assertNotIn('#', href)
+        svg = urllib.parse.unquote(href.split(',', 1)[1])
+        self.assertIn('fill:#8a2b2b', svg)
+        self.assertTrue(svg.startswith('<svg') and svg.endswith('</svg>'))
+        self.assertIn(f'href="{href}"', browser.page_html())
+
+
 class Server(unittest.TestCase):
     def test_lilypond_found_where_it_was_unzipped(self):
         import build
