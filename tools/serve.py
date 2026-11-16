@@ -375,7 +375,7 @@ def api_chant_preview(data):
     problems, facts = chantedit.check(text)
     img, err = chantedit.render(text, shift)
     return {'ok': img is not None, 'img': img and '/api/chant/img?f=' + img, 'error': err, 'problems': problems,
-            'voices': facts and facts['voices'], 'double': facts and facts['double'],
+            'voices': facts and facts['voices'], 'double': facts and facts['double'], 'quad': facts and facts['quad'],
             'phrases': facts and facts['phrases']}
 
 

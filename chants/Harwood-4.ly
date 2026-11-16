@@ -27,7 +27,7 @@ T_notes = \relative c' {
 }
 
 B_notes = \relative c' {
-  g2 | b,4 e | b2 \bar "||"
+  g2 | b4 e, | b2 \bar "||"
   c2 | d4 e | a, d | g,2 \bar "||"
 }
 

@@ -101,7 +101,7 @@ def service_text(text, music):
 
 
 def check(text):
-    """(problems, facts): the voices must agree phrase by phrase; a chant is single (2 phrases) or double (4)."""
+    """(problems, facts): the voices must agree phrase by phrase; a chant is single (2 phrases), double (4) or quadruple (8)."""
     import chantinfo
     from chantparse import load_chant
     problems = []
@@ -119,8 +119,8 @@ def check(text):
         if s != first:
             problems.append(f"{LABELS.get(v, v)} has {len(s)} phrases of {', '.join(map(str, s))} bars; "
                             f"{LABELS.get(next(iter(shapes)), '')} has {len(first)} of {', '.join(map(str, first))}")
-    if first and len(first) not in (2, 4):
-        problems.append(f'{len(first)} phrases: a single chant has 2 (|| between them), a double 4')
+    if first and len(first) not in (2, 4, 8):
+        problems.append(f'{len(first)} phrases: a single chant has 2 (|| between them), a double 4, a quadruple 8')
     tm = re.search(r'\\time\s+(\d+)/(\d+)', text)
     if tm and int(tm.group(2)):                   # each bar as long as the time signature says
         from fractions import Fraction

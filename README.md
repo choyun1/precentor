@@ -33,7 +33,7 @@ It was built for the weekly use of one parish, St. Peter's Episcopal Church in C
 ## What it's for
 
 - **The texts.** All 150 psalms and the 21 canticles of the Daily Office in the words of the 1979 BCP, checked word for word against it, in a plain-text format anyone can edit.
-- **Anglican chant.** 256 public-domain chants (153 of them from the *New Cathedral Psalter Chants* of 1909), single and double, with a catalog (composer, dates, key, mode) and notation and playback for each. The build checks that a double chant comes out even, lets the second half repeat († on a verse) fall where the Sunday needs it, and shows how the key moves at a change of chant.
+- **Anglican chant.** 324 public-domain chants (221 of them from the *New Cathedral Psalter Chants* of 1909), single, double and quadruple, with a catalog (composer, dates, key, mode) and notation and playback for each. The build checks that a double chant comes out even, lets the second half repeat († on a verse) fall where the Sunday needs it, and shows how the key moves at a change of chant.
 - **Plainchant.** The Gregorian psalm tones of the Liber usualis, every tone and ending, set to any text automatically by the natural stress of the words, with the intonation and flex.
 - **The lectionary.** The psalms appointed by the Revised Common Lectionary (Episcopal), Years A, B and C, both tracks, with the verses as printed, optional verses included.
 - **Choosing.** Mood tags on every psalm and on any chant you tag, matched against each other; what you sang last time on the same Sunday of the lectionary; how long since each chant was used.

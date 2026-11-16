@@ -515,11 +515,12 @@ def main():
                 failed += 1
         info = chantinfo.info(ly)
         rating = row.get('Rating', '').strip()
+        sd = row.get('Single/Double') or ('Quadruple' if info['quad'] else 'Double' if info['double'] else 'Single')
         chants.append({
             'id': name, 'composer': row.get('Composer', ''), 'years': row.get('Years', ''),
             'key': row.get('Key') or info['key'].replace('♯', '#').replace('♭', 'b'),
             'mode': row.get('Mode') or info['mode'].capitalize(),
-            'double': (row.get('Single/Double') or ('Double' if info['double'] else 'Single')) == 'Double',
+            'double': sd in ('Double', 'Quadruple'), 'quad': sd == 'Quadruple',
             'range': info['range'], 'rating': int(rating) if rating.isdigit() else None,
             'mood': tags(row.get('Mood')), 'notes': row.get('Notes', ''), 'pins': ['favorite' if x == 'favourite' else x for x in tags(row.get('Pin'))],
             'source': row.get('Source', ''), 'acp': row.get('ACP Psalm', ''),

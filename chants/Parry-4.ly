@@ -15,7 +15,7 @@ S_notes = \relative c'' {
   as2 | g4 as | es2 \bar "||"
   f2 | bes4 bes | c f, | des'2 \bar "||"
   bes2 | as4 g | c2 \bar "||"
-  c2 | bes4 f | es des | es2 \bar "||"
+  c2 | bes4 f | \set Score.repeatCommands = #'((volta "")) es des | es2 \bar "||"
 }
 
 A_notes = \relative c' {
@@ -39,6 +39,24 @@ B_notes = \relative c {
   a2 | bes4 bes | c f | es2 \bar "||"
 }
 
+% The Gloria's own ending, after the chant: printed, not played
+S_amen = \relative c' {
+  \set Score.repeatCommands = #`((volta #f) (volta ,#{ \markup \italic "for Gloria." #})) es4 des | es2
+  \set Score.repeatCommands = #'((volta #f)) \bar "|."
+}
+
+A_amen = \relative c' {
+  as4_\markup "A" des_\markup "-" | des4_\markup "men." c
+}
+
+T_amen = \relative c' {
+  as4 g | es2
+}
+
+B_amen = \relative c {
+  c4 es | as,2
+}
+
 % Use markup to center the chant on the page
 \markup {
   \fill-line {
@@ -49,20 +67,20 @@ B_notes = \relative c {
             \global
             \clef "treble"
             \new Voice = "Soprano" <<
-              \voiceOne \S_notes
+              \voiceOne { \S_notes \S_amen }
             >>
             \new Voice = "Alto" <<
-              \voiceTwo \A_notes
+              \voiceTwo { \A_notes \A_amen }
             >>
           >>
           \new Staff <<
             \global
             \clef "bass"
             \new Voice = "Tenor" <<
-              \voiceOne \T_notes
+              \voiceOne { \T_notes \T_amen }
             >>
             \new Voice = "Bass" <<
-              \voiceTwo \B_notes
+              \voiceTwo { \B_notes \B_amen }
             >>
           >>
         >>

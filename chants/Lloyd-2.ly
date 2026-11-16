@@ -19,7 +19,7 @@ S_notes = \relative c'' {
 }
 
 A_notes = \relative c'' {
-  gis2 | gis4 e | e2 \bar "||"
+  gis2 | gis4 fis | e2 \bar "||"
   cis2 | e4 e | fis fis | e2 \bar "||"
   e2 | e4 d | cis2 \bar "||"
   b2 | b4 e | e dis | e2 \bar "||"

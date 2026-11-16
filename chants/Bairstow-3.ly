@@ -18,9 +18,9 @@ S_notes = \relative c'' {
   g2 | c4 f, | e8 f g4 | c,2 \bar "||"
 }
 
-A_notes = \relative c'' {
-  g2 | a4 e | g2 \bar "||"
-  e2 | e4 e | e4 dis | e2 \bar "||"
+A_notes = \relative c' {
+  <\tweak font-size #-3 e \tweak font-size #-3 c>2_\markup \italic "Unison." | <\tweak font-size #-3 e \tweak font-size #-3 c>4 <\tweak font-size #-3 a,>4 | <\tweak font-size #-3 b>2 \bar "||"
+  e2_\markup \italic "Harmony." | e4 d | e4 dis | e2 \bar "||"
   e2 | e4 e | d2 \bar "||"
   d2 | c4 c | c4 b | c2 \bar "||"
 }
@@ -32,9 +32,9 @@ T_notes = \relative c' {
   b2 | g4 a | g4 f | e2 \bar "||"
 }
 
-B_notes = \relative c' {
-  g2 | a4 e | g2 \bar "||"
-  b2 | c4 b8 a | g4 fis | e2 \bar "||"
+B_notes = \relative c {
+  <\tweak font-size #-3 c>2 | <\tweak font-size #-3 a>4 <\tweak font-size #-3 c>4 | <\tweak font-size #-3 e>2 \bar "||"
+  b'2 | c4 b8 a | g4 fis | e2 \bar "||"
   a2 | gis4 g | fis2 \bar "||"
   f2 | e4 d | g4 g, | c2 \bar "||"
 }
