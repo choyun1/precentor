@@ -17,8 +17,8 @@ S_notes = \relative c'' {
 }
 
 A_notes = \relative c'' {
-  a2_\markup \italic "Unison." | gis4 g | fis2 \bar "||"
-  cis2_\markup \italic "Harmony." | d4 d | g fis8 e | d2 \bar "||"
+  a2 | gis4 g | fis2 \bar "||"
+  cis2 | d4 d | g fis8 e | d2 \bar "||"
 }
 
 T_notes = \relative c' {
@@ -29,6 +29,12 @@ T_notes = \relative c' {
 B_notes = \relative c' {
   a2 | a4 a | a2 \bar "||"
   g2 | fis4 g | e a, | d2 \bar "||"
+}
+
+% Words the book prints between the staves (Unison, Harmony): on one line, printed only
+words = {
+  s2*3-\markup \italic "Unison." \bar "||"
+  s2*4-\markup \italic "Harmony." \bar "||"
 }
 
 % Use markup to center the chant on the page
@@ -47,6 +53,7 @@ B_notes = \relative c' {
               \voiceTwo \A_notes
             >>
           >>
+          \new Dynamics \with { \override TextScript.font-size = #-1.5 \override TextScript.extra-offset = #'(-2.5 . 0) \override VerticalAxisGroup.nonstaff-relatedstaff-spacing.padding = #2 } \words
           \new Staff <<
             \global
             \clef "bass"
