@@ -6,7 +6,7 @@
 let audio = null, playing = null, playId = 0;     // playId: which playback is current, so an old one's timer can't stop a new one
 let principal = null, room = null;
 // the breaths, in whole notes: rest is the time added before the next phrase, lift how much earlier the note before lets go
-const BREATH = {rest: 0.055, lift: 0.04};         // between a double chant's halves
+const BREATH = {rest: 0.055, lift: 0.04};         // between a double (or quadruple) chant's verses
 const CATCH = {rest: 0.0128, lift: 0.0255};         // at a mediant (each quarter of a double, the middle of a single): a lift of the hands
 function stopPlay() { playId++; if (playing) { playing.forEach(o => { try { o.stop(); } catch (e) {} }); playing = null; } document.querySelectorAll(".play").forEach(b => b.textContent = "▶ Play"); }
 function play(id, btn, shift = 0) {
@@ -17,7 +17,7 @@ function playTone(name, btn) { playVoices((D.tones || []).find(t => t.name === n
 // the times of a voice's notes with a breath before each phrase (phrases: when each after the first starts, in whole notes)
 function withBreath(evs, phrases) {
   if (!phrases || !phrases.length) return evs;
-  const double = phrases.length >= 3, bs = phrases.map((t, i) => ({t, ...(double && i === 1 ? BREATH : CATCH)}));
+  const double = phrases.length >= 3, bs = phrases.map((t, i) => ({t, ...(double && i % 2 === 1 ? BREATH : CATCH)}));   // a quadruple breathes after each verse
   return evs.map(([m, st, du]) => {
     let shift = 0, d = du;
     bs.forEach(b => {

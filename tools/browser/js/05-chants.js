@@ -10,7 +10,7 @@ function chantCard(c, opts = {}) {
   return `<div class="card ${JUST === "row:" + c.id ? "opening" : ""}" id="card-${esc(c.id)}">
     <button class="small play" onclick="play('${esc(c.id)}', this)">▶ Play</button>${pinButtons(c)}
     <h2>${esc(CN(c.id))}</h2><span class="who">${esc(c.id)} · ${esc(c.composer)}${c.years ? " (" + esc(c.years) + ")" : ""}</span>
-    <div class="facts"><b>${esc(keyName(c))}</b> · ${c.double ? "double" : "single"}
+    <div class="facts"><b>${esc(keyName(c))}</b> · ${sdName(c)}
       ${c.range ? " · soprano " + esc(c.range.join("–")) : ""} ${c.acp ? " · ACP sets it to Ps " + esc(c.acp) : ""} ${stars(val(c, "rating"))}</div>
     <div class="moodrow">${mood.length ? mood.map(t => chip(t)).join("") : '<span class="hint">no mood tags yet</span>'}</div>
     ${c.img ? `<div class="notation"><img loading="lazy" src="${esc(chantImg(c))}" alt="${esc(c.id)}"></div>` : ""}
@@ -155,6 +155,9 @@ function chantRef(text) {           // 'Turle-2 down 2' -> {name: 'Turle-2', shi
   return {name, shift};
 }
 function chantText(text) { const r = chantRef(text); return C[r.name] ? CN(r.name) + (r.shift ? ` (in ${keyAt(C[r.name], r.shift)})` : "") : text; }
+// single, double or quadruple (four verses to the chant)
+function sdName(c) { return c.quad ? "quadruple" : c.double ? "double" : "single"; }
+function sdCode(c) { return c.quad ? "q" : c.double ? "d" : "s"; }
 function keyName(c) {
   const k = c.key || "", m = (c.mode || "").toLowerCase();
   if (k.includes("/") && m === "m/m") { const [a, b] = k.split("/"); return `${pretty(a.trim())} major / ${pretty(b.trim())} minor`; }
@@ -212,7 +215,7 @@ const SORT_FIELDS = {
   mode:     {label: "major / minor", dir: 1, val: modeRank, head: c => ["Major", "Minor", "Modal and other"][modeRank(c)]},
   key:      {label: "key (C, D♭, D …)", dir: 1, val: c => keyRank(c, false), head: c => keyName(c)},
   fifths:   {label: "key (circle of fifths)", dir: 1, val: c => keyRank(c, true), head: c => keyName(c)},
-  sd:       {label: "single / double", dir: 1, val: c => c.double ? 1 : 0, head: c => c.double ? "Double chants" : "Single chants"},
+  sd:       {label: "single / double", dir: 1, val: c => c.quad ? 2 : c.double ? 1 : 0, head: c => sdName(c)[0].toUpperCase() + sdName(c).slice(1) + " chants"},
   rating:   {label: "rating", dir: -1, val: c => val(c, "rating") || null},
   pinned:   {label: "pinned first (favorites, to try, to check)", dir: 1, val: c => pinned(c, "favorite") ? 0 : pinned(c, "to try") ? 1 : pinned(c, "to check") ? 2 : null,
              head: c => pinned(c, "favorite") ? "Favorites" : pinned(c, "to try") ? "To try" : pinned(c, "to check") ? "To check" : "The rest"},
@@ -286,7 +289,7 @@ function renderChantsShell() {
     <h3>Mode</h3><select id="mode"><option value="">any</option><option>Major</option><option>Minor</option><option value="other">modal / other</option></select>
     <h3>Key</h3><select id="keyf"><option value="">any</option>${KEYS_PRESENT.map(k => `<option>${esc(k)}</option>`).join("")}</select>
     <h3>Source</h3><select id="srcf"><option value="">any</option>${SOURCES_PRESENT.map(g => `<option value="${esc(g)}">${esc(g.replace(/^The /, "").replace(" Chants", "").replace(/^[OS]/, x => x.toLowerCase()))}</option>`).join("")}</select>
-    <h3>Single or double</h3><select id="sd"><option value="">either</option><option value="s">single</option><option value="d">double</option></select>
+    <h3>Single or double</h3><select id="sd"><option value="">either</option><option value="s">single</option><option value="d">double</option><option value="q">quadruple</option></select>
     <h3>Rating at least</h3><select id="rating"><option value="0">any</option>${[1, 2, 3, 4, 5].map(n => `<option>${n}</option>`).join("")}</select>
     <h3>Sort</h3><div id="sortbox">${sortControl("chants", false)}</div>
   </aside><div>
@@ -342,7 +345,7 @@ function renderChants() {
     if (F.moods.size && ![...F.moods].some(t => mood.includes(t))) return false;
     if (!pinFilter(c, F.pin)) return false;
     if (F.mode === "other" ? ["Major", "Minor"].includes(c.mode) : F.mode && c.mode !== F.mode) return false;
-    if (F.sd && (F.sd === "d") !== c.double) return false;
+    if (F.sd && F.sd !== sdCode(c)) return false;
     if (F.key && keyName(c) !== F.key) return false;
     if (F.src && srcGroup(c) !== F.src) return false;
     if (r < F.minRating) return false;
@@ -365,7 +368,7 @@ function renderChants() {
     }
     const open = OPEN.has(c.id);
     return head + `<div class="crow ${open ? "open" : ""} ${JUST === "row:" + c.id ? "just" : ""}" data-id="${esc(c.id)}" onclick="toggleRow('${esc(c.id)}')" title="${open ? "Close" : "Open"} ${esc(CN(c.id))}"><span class="nm"><span class="caret">▸</span>${pinMarks(c) ? pinMarks(c) + " " : ""}${esc(CN(c.id))}</span>
-      <span class="meta">${esc(keyName(c))}${c.double ? "" : ", single"}</span><span class="mo">${val(c, "mood").map(t => chip(t)).join(" ")}</span><span>${stars(val(c, "rating"))}</span>
+      <span class="meta">${esc(keyName(c))}${c.quad ? ", quadruple" : c.double ? "" : ", single"}</span><span class="mo">${val(c, "mood").map(t => chip(t)).join(" ")}</span><span>${stars(val(c, "rating"))}</span>
       <span class="meta">${esc(lastUsed(c.id) || "never")}</span><span class="meta src" title="${esc(c.source || "")}">${esc(srcShort(c))}</span></div>`
       + (open ? chantCard(c, {editing: openEdits.has(c.id)}) : "");
   }).join("") + `</div>`;

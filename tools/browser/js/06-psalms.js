@@ -147,7 +147,7 @@ function renderText() {
       return `<div class="section"><div class="moodrow"><b style="font-weight:normal">${s.verses === "all" ? "Whole text" : "Verses " + esc(s.verses)}</b>
         ${s.mood.map(m => chip(m)).join("")} <span class="hint">${esc(s.type)}${s.note ? " · " + esc(s.note) : ""}</span></div>
         ${sg.length ? `<table class="sugg"><tr><th>Chant</th><th>Key</th><th>Shares</th><th>Rating</th><th>Last used</th></tr>${sg.map(x =>
-          `<tr><td><span class="link" onclick="showChant('${esc(x.c.id)}')">${esc(CN(x.c.id))}</span></td><td>${esc(keyName(x.c))}, ${x.c.double ? "double" : "single"}</td>
+          `<tr><td><span class="link" onclick="showChant('${esc(x.c.id)}')">${esc(CN(x.c.id))}</span></td><td>${esc(keyName(x.c))}, ${sdName(x.c)}</td>
           <td>${x.hits.map(h => chip(h)).join(" ") || '<span class="hint">same family</span>'}</td><td>${stars(val(x.c, "rating"))}</td><td>${esc(lastUsed(x.c.id))}</td></tr>`).join("")}</table>`
           : `<p class="hint">No matching chants yet${tagged ? "" : ": none of the chants has mood tags so far. Tag them on the Chants tab"}.</p>`}
       </div>`;

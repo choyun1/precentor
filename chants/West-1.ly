@@ -19,8 +19,8 @@ S_notes = \relative c'' {
 }
 
 A_notes = \relative c' {
-  e2 | d4 d | d2 \bar "||"
-  cis2 | e4 e | e4 dis | e2 \bar "||"
+  e2_\markup \italic "Unison." | d4 d | d2 \bar "||"
+  cis2_\markup \italic "Harmony." | e4 e | e4 dis | e2 \bar "||"
   fis2 | e4 e | e2 \bar "||"
   d2 | d4 e | fis4 e | e2 \bar "||"
 }

@@ -144,6 +144,32 @@ class Chants(unittest.TestCase):
         self.assertEqual(d['phrases'][1], 3.5)                                    # the second half: after 7 bars of semibreves
         self.assertEqual(len(chantinfo.info(os.path.join(ROOT, 'chants', 'Alcock-7.ly'))['phrases']), 1)   # a single
 
+    def test_print_only_marks(self):
+        """Text, brackets and cue-size heads beside sung ones are printed but not played or counted."""
+        from chantparse import parse_voice
+        notes, secs = parse_voice(
+            "<g' \\tweak font-size #-3 e' \\tweak font-size -3 c'>2_\\markup \\italic \"Unison.\" | a4 e \\bar \"||\"\n"
+            "\\set Score.repeatCommands = #'((volta \"for Gloria.\")) f2^\\markup { \\italic \"Harmony, ad lib.\" } |"
+            " <\\parenthesize \\tweak font-size -3 e e,>2 \\set Score.repeatCommands = #'((volta #f)) \\bar \"||\"")
+        flat = [n.label() if not isinstance(n, list) else [h.label() for h in n] for n in notes]
+        self.assertEqual(flat, ["g'", 'a', 'e', 'f', 'e,'])
+        self.assertEqual(secs, [2, 2])
+
+    def test_quadruple(self):
+        """A chant of eight phrases is a quadruple: four verses to the chant, which the editor's check accepts."""
+        import chantinfo
+        phrase = "c2 | d4 e | f2 \\bar \"||\"\n  g2 | a4 g | f4 e | d2 \\bar \"||\"\n"
+        text = chantedit.template()
+        p = chantedit.parts(text)
+        for v in p['voices']:
+            v['start'], v['body'] = "c'", phrase * 4
+        out = chantedit.apply(text, p)
+        self.assertEqual(chantedit.check(out)[0], [])
+        d = chantinfo.info(None, out)
+        self.assertTrue(d['quad'] and d['double'])
+        self.assertEqual(len(d['phrases']), 7)
+        self.assertFalse(chantinfo.info(os.path.join(ROOT, 'chants', 'Alcock-2.ly'))['quad'])
+
     def test_tone_pitch(self):
         """A psalm tone's C line plays as middle C (midi 60)."""
         import browser, tones

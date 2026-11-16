@@ -311,7 +311,8 @@ def read_chant(name, src=None):
         info['key'] = (pc % 12, km.group(3), km.group(1).upper() + km.group(2).replace('is', '♯').replace('es', '♭').replace('s', '♭'))
     sm = re.search(r'S_notes\s*=.*?\{(.*?)\n\}', src, re.S) or re.search(r'Unison_notes\s*=.*?\{(.*?)\n\}', src, re.S)
     phrases = sm.group(1).count('\\bar "||"') if sm else 0
-    info['double'] = phrases >= 4
+    info['double'] = phrases >= 4      # a double or a quadruple
+    info['quad'] = phrases >= 8
     return info
 
 
@@ -512,11 +513,18 @@ def checks(sunday, psalms, chants):
                 out.append(f"{ps['doc']['title']} {rng}: {c['tone']['label']} (plainchant)")
                 prev = sec['chant']
                 continue
-            line = f"{ps['doc']['title']} {rng}: {sec['chant']} ({key_name(c.get('key'))}, {'double' if c['double'] else 'single'})"
+            kind = 'quadruple' if c.get('quad') else 'double' if c['double'] else 'single'
+            line = f"{ps['doc']['title']} {rng}: {sec['chant']} ({key_name(c.get('key'))}, {kind})"
             if prev is not None and prev != sec['chant'] and not is_tone(prev):
                 line += f" — from {prev}: {key_relation(chants[prev].get('key'), c.get('key'))}"
             out.append(line)
-            if c['double']:
+            if c.get('quad'):              # four verses to the chant; a psalm may end partway (the book says where)
+                if any(v['dagger'] for v in vs):
+                    out.append('   ⚠ † verses in a quadruple chant section (they will be sung as ordinary verses)')
+                left = len(vs) % 4
+                out.append(f'   ✓ verses fit the quadruple chant' if not left else
+                           f'   ⚠ ends after verse {left} of the quadruple chant ({len(vs)} verses)')
+            elif c['double']:
                 half, problems = 1, []
                 for v in vs:
                     if v['dagger']:

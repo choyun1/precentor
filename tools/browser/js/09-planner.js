@@ -258,6 +258,11 @@ function fitReport(p, pi) {
     const to = i + 1 < chants.length ? (chants[i + 1].from || 1e9) : 1e9, ch = C[c.name];
     const vs = verses.filter(v => v[0] >= c.from && v[0] < to);
     if (!ch || !vs.length) return;
+    if (ch.quad) {                                 // four verses to the chant; a psalm may end partway (the book says where)
+      const left = vs.length % 4;
+      out.push(left ? `<span class="warn">⚠ ${esc(c.name)}: ends after verse ${left} of the quadruple chant</span>` : `<span class="hint">✓ the verses fit ${esc(c.name)} (quadruple)</span>`);
+      return;
+    }
     if (!ch.double) { if (vs.some(v => v[1])) out.push(`<span class="warn">⚠ † in a single chant (${esc(c.name)}): sung as ordinary verses</span>`); return; }
     let half = 1; const probs = [];
     vs.forEach(v => { if (v[1]) { if (half !== 1) probs.push(`† at v. ${v[0]} falls on the second half`); return; } half = half === 1 ? 2 : 1; });
@@ -375,7 +380,7 @@ function renderPicker() {
     if (P.moods.size && ![...P.moods].some(t => m.includes(t))) return false;
     if (P.mode === "other" ? ["Major", "Minor"].includes(c.mode) : P.mode && c.mode !== P.mode) return false;
     if (P.key && keyName(c) !== P.key) return false;
-    if (P.sd && (P.sd === "d") !== c.double) return false;
+    if (P.sd && P.sd !== sdCode(c)) return false;
     return r >= P.minRating && pinFilter(c, P.pin);
   });
   list.sort(sortCompare(SORTS.picker.levels, x => x.c));
@@ -387,7 +392,7 @@ function renderPicker() {
         `<button class="chip g-${esc(g.group)} ${P.moods.has(t) ? "on" : ""}" data-pm="${esc(t)}">${esc(t)}</button>`).join("")}</div>`).join("")}
       <h3 class="hint" style="margin:10px 0 4px">Key</h3><select id="pkey"><option value="">any</option>${KEYS_PRESENT.map(k => `<option ${P.key === k ? "selected" : ""}>${esc(k)}</option>`).join("")}</select>
       <h3 class="hint" style="margin:10px 0 4px">Mode</h3><select id="pmode"><option value="">any</option>${["Major", "Minor"].map(m => `<option ${P.mode === m ? "selected" : ""}>${m}</option>`).join("")}<option value="other" ${P.mode === "other" ? "selected" : ""}>modal / other</option></select>
-      <h3 class="hint" style="margin:10px 0 4px">Single or double</h3><select id="psd"><option value="">either</option><option value="s" ${P.sd === "s" ? "selected" : ""}>single</option><option value="d" ${P.sd === "d" ? "selected" : ""}>double</option></select>
+      <h3 class="hint" style="margin:10px 0 4px">Single or double</h3><select id="psd"><option value="">either</option><option value="s" ${P.sd === "s" ? "selected" : ""}>single</option><option value="d" ${P.sd === "d" ? "selected" : ""}>double</option><option value="q" ${P.sd === "q" ? "selected" : ""}>quadruple</option></select>
       <h3 class="hint" style="margin:10px 0 4px">Pinned</h3><select id="ppin">${[["", "all chants"], ["favorite", "favorites"], ["to try", "to try"], ["to check", "to check"]].map(([v, l]) => `<option value="${v}" ${P.pin === v ? "selected" : ""}>${l}</option>`).join("")}</select>
       <h3 class="hint" style="margin:10px 0 4px">Rating at least</h3><select id="prt"><option value="0">any</option>${[1, 2, 3, 4, 5].map(n => `<option ${P.minRating === n ? "selected" : ""}>${n}</option>`).join("")}</select>
       <h3 class="hint" style="margin:10px 0 4px">Sort</h3>${sortControl("picker", true)}
@@ -399,7 +404,7 @@ function renderPicker() {
         <button class="small primary" style="float:right;margin-left:6px" onclick="pickChant('${esc(c.id)}')">Use</button>
         <button class="small play" onclick="play('${esc(c.id)}', this)">▶ Play</button>${pinButtons(c)}
         <b style="font-weight:normal;font-size:19px">${esc(CN(c.id))}</b> <span class="who">${esc(c.composer)} · ${esc(c.id)}</span>
-        <div class="facts"><b>${esc(keyName(c))}</b> · ${c.double ? "double" : "single"} ${stars(val(c, "rating"))} · last used ${esc(lastUsed(c.id) || "never")}${recent.has(c.id) ? " <b>(recent)</b>" : ""}</div>
+        <div class="facts"><b>${esc(keyName(c))}</b> · ${sdName(c)} ${stars(val(c, "rating"))} · last used ${esc(lastUsed(c.id) || "never")}${recent.has(c.id) ? " <b>(recent)</b>" : ""}</div>
         <div class="moodrow">${val(c, "mood").map(t => chip(t, hits.includes(t) ? "on" : "")).join("")}</div>
         ${c.img ? `<img loading="lazy" src="${esc(chantImg(c))}" alt="">` : ""}
         ${notesBox(val(c, "notes"), false)}
@@ -453,7 +458,7 @@ function psalmBlock(p, pi, recent) {
         ${/^tone[:\s]/i.test(c.name) ? toneMenus(c.name, `t => { B.psalms[${pi}].chants[${ci}].name = t; renderBuilder(); }`) : ""}
         ${ch ? `<button class="small play" onclick="play('${esc(ch.id)}', this, ${c.shift || 0})">▶ Play</button>` : (c.name && !/^tone[:\s]/i.test(c.name)) ? '<span class="hint">not in the catalog</span>' : ""}
         ${ci > 0 ? `<span class="link" onclick="B.psalms[${pi}].chants.splice(${ci},1); renderBuilder()">remove</span>` : ""}</div>
-        ${ch ? `<div class="moodrow chantfacts"><span class="hint"><span class="link" onclick="showChant('${esc(ch.id)}')">${esc(CN(ch.id))}</span>, ${ch.double ? "double" : "single"} · last used ${esc(lastUsed(ch.id) || "never")}</span>
+        ${ch ? `<div class="moodrow chantfacts"><span class="hint"><span class="link" onclick="showChant('${esc(ch.id)}')">${esc(CN(ch.id))}</span>, ${sdName(ch)} · last used ${esc(lastUsed(ch.id) || "never")}</span>
           ${val(ch, "mood").map(t => chip(t, mood.includes(t) ? "on" : "")).join("") || '<span class="hint">no moods yet</span>'}</div>` : ""}`;
     }).join("")}
     ${B.choir === false ? "" : `<p style="margin:4px 0"><span class="link" onclick="B.psalms[${pi}].chants.push({name:'',from:''}); renderBuilder()">+ change chant partway</span></p>`}

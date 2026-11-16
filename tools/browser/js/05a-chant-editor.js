@@ -9,7 +9,7 @@ function detailsBox(c) {
   return `<div class="edit" id="details-${esc(c.id)}">
     ${f("Composer", "Composer (Surname, Given names)", c.composer)}
     <div style="display:flex;gap:10px;flex-wrap:wrap">${f("Years", "Years", c.years, "120px")}${f("Key", "Key (A, Bb, F#)", c.key, "90px")}${f("Mode", "Mode (Major, Minor, Mix…)", c.mode, "130px")}
-      <label class="hint" style="display:block;margin:4px 0">Single or double<br><select data-f="Single/Double"><option ${c.double ? "" : "selected"}>Single</option><option ${c.double ? "selected" : ""}>Double</option></select></label></div>
+      <label class="hint" style="display:block;margin:4px 0">Single or double<br><select data-f="Single/Double">${["Single", "Double", "Quadruple"].map(k => `<option ${sdName(c) === k.toLowerCase() ? "selected" : ""}>${k}</option>`).join("")}</select></label></div>
     ${f("Source", "Source (ACP 074, a book…)", c.source)}${f("ACP Psalm", "Psalms the ACP sets it to (35, 78-1)", c.acp)}
     <p style="margin:6px 0 0"><button class="small primary" onclick="saveDetails('${esc(c.id)}')">Save details</button>
       <button class="small" onclick="toggleDetails('${esc(c.id)}')">Cancel</button> <span class="hint" id="dmsg-${esc(c.id)}"></span></p>
@@ -27,7 +27,7 @@ async function saveDetails(id) {
   const j = await post("/api/chant/details", {name: id, fields});
   if (!j.ok) { $("#dmsg-" + CSS.escape(id)).textContent = j.error || "Could not save"; return; }
   Object.assign(C[id], {composer: fields.Composer, years: fields.Years, key: fields.Key, mode: fields.Mode,
-                        double: fields["Single/Double"] === "Double", source: fields.Source, acp: fields["ACP Psalm"]});
+                        double: fields["Single/Double"] !== "Single", quad: fields["Single/Double"] === "Quadruple", source: fields.Source, acp: fields["ACP Psalm"]});
   shutPanel(id, () => detailsOpen.delete(id));
 }
 
@@ -94,7 +94,7 @@ async function previewMusic() {
   try { j = await post("/api/chant/preview", {name: ME.name, parts, credit: parts.credit}); } catch (e) { j = {ok: false, error: "the launcher didn't answer"}; }
   ME.parts = parts;
   Object.assign(ME, {img: j.img || ME.img, error: j.ok ? "" : (j.error || "could not draw it"), problems: j.problems || [], voices: j.voices || ME.voices,
-                     double: j.double, phrases: j.phrases});
+                     double: j.double, quad: j.quad, phrases: j.phrases});
   if ($("#me-pic")) $("#me-pic").innerHTML = musicPicture();
   if (state) state.textContent = "";
 }
@@ -114,7 +114,7 @@ function playEdited(btn) { if (ME.voices) playVoices(ME.voices, btn, ME.phrases)
 async function saveMusic() {
   const parts = editedParts();
   if (ME.details) Object.assign(ME.details, {Key: catalogKey(parts.key.tonic), Mode: parts.key.mode[0].toUpperCase() + parts.key.mode.slice(1),
-                                             "Single/Double": ME.double === false ? "Single" : "Double"});
+                                             "Single/Double": ME.double === false ? "Single" : ME.quad ? "Quadruple" : "Double"});
   $("#me-save").disabled = true;
   const j = await post("/api/chant/save", {name: ME.name, parts, credit: parts.credit, details: ME.details, private: ME.details && ME.details.private});
   $("#me-save").disabled = false;
@@ -122,7 +122,7 @@ async function saveMusic() {
   await previewMusic();
   if (!C[ME.name]) {                               // a new chant: into the list now; the next rebuild fills in the rest
     const d = ME.details || {}, c = {id: ME.name, composer: d.Composer || "", years: d.Years || "", key: d.Key || "", mode: d.Mode || "",
-      double: d["Single/Double"] !== "Single", range: null, rating: null, mood: [], notes: "", pins: [], source: d.Source || "", acp: "", img: true, voices: ME.voices, private: !!d.private, label: ME.name};
+      double: d["Single/Double"] !== "Single", quad: d["Single/Double"] === "Quadruple", range: null, rating: null, mood: [], notes: "", pins: [], source: d.Source || "", acp: "", img: true, voices: ME.voices, private: !!d.private, label: ME.name};
     D.chants.push(c); C[c.id] = c;
   }
   Object.assign(C[ME.name], {previewImg: ME.img, voices: ME.voices, img: true});

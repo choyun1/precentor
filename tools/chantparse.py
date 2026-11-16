@@ -50,15 +50,50 @@ class Note:
         return self.name + a + ("'" * self.oct if self.oct > 0 else "," * -self.oct)
 
 
+SMALL = '@'   # marks a cue-size head (\\tweak font-size #-3): printed for the organist, not sung or played
+SMALL_RE = re.compile(r"(?:\\parenthesize\s+)?\\tweak\s+font-size\s+#?-[\d.]+\s+(?:\\parenthesize\s+)?"
+                      r"([a-g](?:isis|eses|ses|sas|is|es|s)?[',]*[!?]?)")
+
+
+def _drop_balanced(text, pattern):
+    """text without each match of pattern and the bracketed group ({…}, (…)) or "string" that follows it."""
+    out, i = [], 0
+    for m in re.finditer(pattern, text):
+        if m.start() < i:
+            continue
+        j = m.end()
+        while j < len(text) and text[j] in ' \t\n':
+            j += 1
+        if j < len(text) and text[j] == '"':
+            k = text.find('"', j + 1)
+            j = len(text) if k < 0 else k + 1
+        elif j < len(text) and text[j] in '{(':
+            o, c = text[j], '}' if text[j] == '{' else ')'
+            depth = 0
+            while j < len(text):
+                depth += {o: 1, c: -1}.get(text[j], 0)
+                j += 1
+                if depth == 0:
+                    break
+        out.append(text[i:m.start()] + ' ')
+        i = j
+    return ''.join(out) + text[i:]
+
+
 def parse_voice(body):
-    """Return (notes, sections) where sections = list of bar-counts per '||' section."""
+    """Return (notes, sections) where sections = list of bar-counts per '||' section.
+    Text (\\markup), brackets (\\set Score.repeatCommands) and cue-size heads are print only: a chord of
+    nothing but cue-size heads takes its time like a rest."""
     body = re.sub(r'%[^\n]*', '', body)
+    body = _drop_balanced(body, r'[_^-]?\\markup\b(?:\s*\\\w+)*')      # _\markup \italic "Unison."
+    body = _drop_balanced(body, r"\\set\s+[\w.]+\s*=\s*#'?(?=\()")             # \set Score.repeatCommands = #'((volta "…"))
+    body = SMALL_RE.sub(lambda m: m.group(1) + SMALL, body)
     body = re.sub(r'\\tweak\s+[\w.-]+\s+(?:#\S+|"[^"]*"|-?[\d.]+)', ' ', body)
     body = re.sub(r'\\(parenthesize|startMeasureSpanner|stopMeasureSpanner|hide|slurDown|slurUp)\b', ' ', body)
     body = re.sub(r'\\override\s+\S+\s*=\s*#\S+', ' ', body)
     body = re.sub(r'\\(set|unset)\s+\S+(\s*=\s*#\S+)?', ' ', body)
     body = re.sub(r'\\bar\s+"([^"]*)"', lambda m: ' BAR(%s) ' % m.group(1), body)
-    toks = re.findall(r"<[^>]*>[\d.]*|BAR\([^)]*\)|\\\w+|[a-g](?:isis|eses|ses|sas|is|es|s)?[',]*[!?]?\d*\.*|[rsR]\d*\.*|\||\S", body)
+    toks = re.findall(r"<[^>]*>[\d.]*|BAR\([^)]*\)|\\\w+|[a-g](?:isis|eses|ses|sas|is|es|s)?[',]*[!?]?@?\d*\.*|[rsR]\d*\.*|\||\S", body)
     notes, sections = [], []
     t, dur, bar, bars_in_sec, sec = F(0), F(1, 4), 0, 0, 0
     bar_has = False
@@ -84,8 +119,10 @@ def parse_voice(body):
             heads = chord
         else:
             heads, durtxt = [tok], None
-        evs = []
+        evs, small = [], []
         for h in heads:
+            small.append(SMALL in h)
+            h = h.replace(SMALL, '')
             m = NOTE_RE.match(h if chord is None else h + (durtxt or ''))
             if not m:
                 mr = re.match(r'^[rsR](\d+)?(\.*)$', h)
@@ -104,7 +141,12 @@ def parse_voice(body):
                 dur = d
             n.dur, n.start, n.bar, n.section, n.src = dur, t, bar, sec, h
             evs.append(n)
+        if evs and len(small) == len(evs) and all(small):  # only cue-size heads: silent here, like a rest
+            t += dur; bar_has = True
+            continue
         if evs:
+            if len(small) == len(evs) and any(small):       # cue-size heads beside sung ones: print only
+                evs = [n for n, sm in zip(evs, small) if not sm]
             # for divisi chords keep all heads; flag later
             for n in evs:
                 n.dur = dur

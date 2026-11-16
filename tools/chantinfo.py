@@ -1,4 +1,4 @@
-"""Facts read straight from a chant's LilyPond file: key, mode, single/double, soprano range, notes for playback."""
+"""Facts read straight from a chant's LilyPond file: key, mode, single/double/quadruple, soprano range, notes for playback."""
 import os, re, sys
 TOOLS = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, TOOLS)
@@ -36,7 +36,8 @@ def info(path, text=None):
     k, md = key_label(tonic, mode)
     return {
         'key': k, 'mode': md,
-        'double': len(melody['sections']) >= 4,
+        'double': len(melody['sections']) >= 4,        # a double or a quadruple: more than one verse to the chant
+        'quad': len(melody['sections']) >= 8,          # a quadruple chant: four verses
         'phrases': melody['phrases'],   # where each phrase after the first starts, in whole notes: Play breathes there
         'range': [name(min(sop)), name(max(sop))] if sop else None,
         'voices': {v: d['events'] for v, d in voices.items()},
