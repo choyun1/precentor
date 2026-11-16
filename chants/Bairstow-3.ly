@@ -19,8 +19,8 @@ S_notes = \relative c'' {
 }
 
 A_notes = \relative c' {
-  <\tweak font-size #-3 e \tweak font-size #-3 c>2_\markup \italic "Unison." | <\tweak font-size #-3 e \tweak font-size #-3 c>4 <\tweak font-size #-3 a,>4 | <\tweak font-size #-3 b>2 \bar "||"
-  e2_\markup \italic "Harmony." | e4 d | e4 dis | e2 \bar "||"
+  <\tweak font-size #-3 e \tweak font-size #-3 c>2 | <\tweak font-size #-3 e \tweak font-size #-3 c>4 <\tweak font-size #-3 a,>4 | <\tweak font-size #-3 b>2 \bar "||"
+  e2 | e4 d | e4 dis | e2 \bar "||"
   e2 | e4 e | d2 \bar "||"
   d2 | c4 c | c4 b | c2 \bar "||"
 }
@@ -39,6 +39,14 @@ B_notes = \relative c {
   f2 | e4 d | g4 g, | c2 \bar "||"
 }
 
+% Words the book prints between the staves (Unison, Harmony): on one line, printed only
+words = {
+  s2*3-\markup \italic "Unison." \bar "||"
+  s2*4-\markup \italic "Harmony." \bar "||"
+  s2*3-\markup \italic "Unison." \bar "||"
+  s2*4-\markup \italic "Harmony." \bar "||"
+}
+
 % Use markup to center the chant on the page
 \markup {
   \fill-line {
@@ -55,6 +63,7 @@ B_notes = \relative c {
               \voiceTwo \A_notes
             >>
           >>
+          \new Dynamics \with { \override TextScript.font-size = #-1.5 \override VerticalAxisGroup.nonstaff-relatedstaff-spacing.padding = #2 } \words
           \new Staff <<
             \global
             \clef "bass"

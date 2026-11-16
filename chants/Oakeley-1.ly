@@ -14,8 +14,9 @@ global = {
 S_notes = \relative c'' {
   a2 | g4 f | bes2 \bar "||"
   a2 | a4 g | f g | a2 \bar "||"
-  a2^\markup \italic "The last (73rd) Verse here." | a4 g | f2 \bar "||"
+  a2 | a4 g | f2 \bar "||"
   f2 | f4 e | e d | c2 \bar "||"
+  \break
   g'2^\markup \italic "The Gloria here." | c4 bes | a2 \bar "||"
   a2 | d4 c | bes a | bes2 \bar "||"
   bes2 | c4 g | a2 \bar "||"

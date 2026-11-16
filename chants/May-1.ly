@@ -19,9 +19,9 @@ S_notes = \relative c'' {
 }
 
 A_notes = \relative c' {
-  c4. des8 | es4 des | c2 \bar "||"
+  c4. des8 | es4 des | <c \tweak font-size #-3 es>2 \bar "||"
   des2 | es4 es | es d | es2 \bar "||"
-  des4. es8 | f4 es | des2 \bar "||"
+  des4. es8 | f4 es | <des \tweak font-size #-3 f>2 \bar "||"
   es2 | es4 f | f g | as2 \bar "||"
 }
 

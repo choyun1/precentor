@@ -46,8 +46,11 @@ S_amen = \relative c' {
 }
 
 A_amen = \relative c' {
-  as4_\markup "A" des_\markup "-" | des4_\markup "men." c
+  as4 des | des4 c
 }
+
+% "A - men." under the alto's Amen: the alto's 20 notes before it are skipped
+amen_words = \lyricmode { \repeat unfold 20 { \skip 1 } A -- \skip 1 men. }
 
 T_amen = \relative c' {
   as4 g | es2
@@ -73,6 +76,7 @@ B_amen = \relative c {
               \voiceTwo { \A_notes \A_amen }
             >>
           >>
+          \new Lyrics \with { \override LyricText.font-size = #-2 } \lyricsto "Alto" \amen_words
           \new Staff <<
             \global
             \clef "bass"
