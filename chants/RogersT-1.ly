@@ -36,7 +36,7 @@ B_notes = \relative c {
   es2 | as4 g | f2 \bar "||"
   d2 | es4 c | d d | g,2 \bar "||"
   es'2 | bes4 bes | c2 \bar "||"
-  as2 | <g \tweak font-size #-3 g'>4 <f \tweak font-size #-3 f'> | bes bes | es2 \bar "||"
+  <as \tweak font-size #-3 as'>2 | <g \tweak font-size #-3 g'>4 <f \tweak font-size #-3 f'> | bes bes | es2 \bar "||"
 }
 
 % Use markup to center the chant on the page
