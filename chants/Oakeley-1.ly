@@ -17,7 +17,7 @@ S_notes = \relative c'' {
   a2 | a4 g | f2 \bar "||"
   f2 | f4 e | e d | c2 \bar "||"
   \break
-  g'2^\markup \italic "The Gloria here." | c4 bes | a2 \bar "||"
+  g'2^\markup \small \italic "The Gloria here." | c4 bes | a2 \bar "||"
   a2 | d4 c | bes a | bes2 \bar "||"
   bes2 | c4 g | a2 \bar "||"
   f2 | f4 bes | a g | f2 \bar "||"
