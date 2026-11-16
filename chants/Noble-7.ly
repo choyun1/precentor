@@ -53,7 +53,7 @@ words = {
               \voiceTwo \A_notes
             >>
           >>
-          \new Dynamics \with { \override TextScript.font-size = #-1.5 \override TextScript.extra-offset = #'(-4.5 . 0) \override VerticalAxisGroup.nonstaff-relatedstaff-spacing.padding = #2 } \words
+          \new Dynamics \with { \override TextScript.font-size = #-1.5 \override TextScript.extra-offset = #'(-2.5 . 0) \override VerticalAxisGroup.nonstaff-relatedstaff-spacing.padding = #2 } \words
           \new Staff <<
             \global
             \clef "bass"
