@@ -29,7 +29,7 @@ T_notes = \relative c' {
   a2 | e4 fis | b2 \bar "||"
   a2 | a4 b | cis4 b | b2 \bar "||"
   b2 | fis4 gis | cis2 \bar "||"
-  b2 | gis4 a | cis4 b | cis2 \bar "||"
+  b2 | gis4 a | d4 b | cis2 \bar "||"
 }
 
 B_notes = \relative c {

@@ -33,7 +33,7 @@ T_notes = \relative c' {
 }
 
 B_notes = \relative c {
-  d2 | b4 d | a2 \bar "||"
+  d2 | cis4 d | a2 \bar "||"
   e'2 | cis4 a | d b | a2 \bar "||"
   d2 | d4 dis | e2 \bar "||"
   fis2 | g4 g, | a a | d2 \bar "||"
