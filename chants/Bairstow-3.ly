@@ -43,8 +43,8 @@ B_notes = \relative c {
 words = {
   s2*3-\markup \italic "Unison." \bar "||"
   s2*4-\markup \italic "Harmony." \bar "||"
-  s2*3-\markup \italic "Unison." \bar "||"
-  s2*4-\markup \italic "Harmony." \bar "||"
+  s2*3 \bar "||"
+  s2*4 \bar "||"
 }
 
 % Use markup to center the chant on the page
@@ -63,7 +63,7 @@ words = {
               \voiceTwo \A_notes
             >>
           >>
-          \new Dynamics \with { \override TextScript.font-size = #-1.5 \override VerticalAxisGroup.nonstaff-relatedstaff-spacing.padding = #2 } \words
+          \new Dynamics \with { \override TextScript.font-size = #-1.5 \override TextScript.extra-offset = #'(-4.5 . 0) \override VerticalAxisGroup.nonstaff-relatedstaff-spacing.padding = #2 } \words
           \new Staff <<
             \global
             \clef "bass"
