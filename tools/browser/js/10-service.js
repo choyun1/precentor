@@ -116,7 +116,7 @@ function anthemBox(k) {
   const v = (B.svc[k] || "").trim();
   if (!v || hymnsOf(v).length) return "";
   const a = findAnthem(v), t = splitPiece(v)[0], id = sid(k);
-  return `<details ${a ? "" : "open"} style="margin:4px 0 8px"><summary class="hint">${a ? "Words" + (a.source ? " (" + esc(a.source) + ")" : "") + ": on file" : "No words on file for this piece yet: paste them here (or leave empty)"}</summary>
+  return `<details ${a ? "" : "open"}><summary class="hint">${a ? "Words" + (a.source ? " (" + esc(a.source) + ")" : "") + ": on file" : "No words on file for this piece yet: paste them here (or leave empty)"}</summary>
     <input type="text" id="asrc-${id}" value="${esc(a ? a.source : "")}" placeholder="Who wrote the words, or where they come from (optional), e.g. Kolbeinn Tumason (1173–1208) or John 3:16" style="width:100%;margin:6px 0">
     <textarea id="atxt-${id}" style="width:100%;height:${a ? Math.min(24, a.text.split("\n").length + 1) * 1.45 : 8}em;font-family:inherit;font-size:15px;line-height:1.45">${esc(a ? a.text : "")}</textarea>
     ${SERVER ? `<button class="small" onclick="saveAnthem('${k}')">Save the words</button> <span class="hint">kept in parish/anthems/, used whenever ${esc(t)} comes round again</span>` : ""}</details>${libAddBox(id, v)}`;
@@ -164,14 +164,14 @@ function seqCard() {
     const ph = {lesson: "e.g. Isaiah 40:1-11 (the summary comes from earlier years) or Isaiah 40:1-11 | summary", hymn: "hymn number, e.g. 102", anthem: "Title - Composer (dates), or a hymn number", music: "Title - Composer (dates)"}[s.kind] || "";
     const hint = s.kind === "lesson" ? lessonHint(v, n) : slotHint(s, v, "seq:" + i);
     return `<div class="seqrow"><select onchange="B.seq[${i}][0]=this.value; renderBuilder()">${opts}</select>
-      <div><input type="text" value="${esc(v)}" ${list ? `list="${list}"` : ""} placeholder="${esc(ph)}" onchange="B.seq[${i}][1]=libComplete(this.value); renderBuilder()" style="width:100%">
-        <div class="svhint">${hint}</div>${s.kind === "anthem" ? seqAnthemBox(i) : family(s) === "organ" ? libAddBox("seq" + i, v, true) : ""}</div>
+      <div><input type="text" class="fill" data-todo="${esc(s.label.replace(/\s*\{hymn\|anthem\}/, ""))}" value="${esc(v)}" ${list ? `list="${list}"` : ""} placeholder="${esc(ph)}" onchange="B.seq[${i}][1]=libComplete(this.value); renderBuilder()" style="width:100%">
+        <div class="svhint">${hint}</div><div class="svextra">${s.kind === "anthem" ? seqAnthemBox(i) : family(s) === "organ" ? libAddBox("seq" + i, v, true) : ""}</div></div>
       <div class="seqbtn"><span class="link" title="move up" onclick="seqMove(${i},-1)">↑</span> <span class="link" title="move down" onclick="seqMove(${i},1)">↓</span> <span class="link" title="remove" onclick="B.seq.splice(${i},1); renderBuilder()">✕</span></div></div>`;
   }).join("");
   const adds = sl.filter(x => x.repeat || !(B.seq || []).some(([k]) => k === x.key));
-  return `<div class="card"><h3 style="font-weight:normal;margin:0 0 4px">The service <span class="hint">· ${esc(order)}, in the order it happens</span></h3>
-    <p class="hint" style="margin:0 0 8px">Add lessons, hymns and pieces in any order; ↑ ↓ move them. Lessons are numbered for you (The First Lesson…).${prev ? ` <span class="link" onclick="copySeq('${prev}')">Start from ${esc(prev)}'s order</span>` : ""}</p>
-    <div class="svrow"><label>Organist</label><div><input type="text" value="${esc(B.svc.organist || "")}" onchange="setSvc('organist', this.value)" style="width:120px"></div></div>
+  return `<div class="card"><h3 class="ctitle">The service <span class="hint">· ${esc(order)}, in the order it happens</span></h3>
+    <p class="hint" style="margin:0 0 12px">Add lessons, hymns and pieces in any order; ↑ ↓ move them. Lessons are numbered for you (The First Lesson…).${prev ? ` <span class="link" onclick="copySeq('${prev}')">Start from ${esc(prev)}'s order</span>` : ""}</p>
+    <div class="svrow organist"><label>Organist</label><div><input type="text" class="fill" data-todo="Organist" placeholder="initials" value="${esc(B.svc.organist || "")}" onchange="setSvc('organist', this.value)" style="width:120px"></div></div>
     ${rows || '<p class="hint">Nothing yet.</p>'}
     <p style="margin:8px 0" class="hint">add: ${adds.map(x => `<span class="link" onclick="B.seq.push(['${x.key}','']); renderBuilder()">${esc(x.label.replace(/\s*\{hymn\|anthem\}/, ""))}</span>`).join(" · ")} · <span class="link" onclick="B.seq.push(['also','']); renderBuilder()">other</span></p>
     ${PLUGINS.rows.map(f => f()).join("")}
@@ -195,7 +195,7 @@ function seqAnthemBox(i) {
   const v = (B.seq[i][1] || "").trim(); if (!v || hymnsOf(v).length) return "";
   const a = findAnthem(v);
   const [t] = splitPiece(v), id = "seq" + i;
-  return `<details style="margin:4px 0 8px"><summary class="hint">${a ? "Words" + (a.source ? " (" + esc(a.source) + ")" : "") + ": on file" : "No words on file yet: paste them here"}</summary>
+  return `<details><summary class="hint">${a ? "Words" + (a.source ? " (" + esc(a.source) + ")" : "") + ": on file" : "No words on file yet: paste them here"}</summary>
     <input type="text" id="asrc-${id}" value="${esc(a ? a.source : "")}" placeholder="Who wrote the words, or where they come from (optional), e.g. Kolbeinn Tumason (1173–1208) or John 3:16" style="width:100%;margin:6px 0">
     <textarea id="atxt-${id}" style="width:100%;height:${a ? Math.min(24, a.text.split("\n").length + 1) * 1.45 : 8}em;font-family:inherit;font-size:15px;line-height:1.45">${esc(a ? a.text : "")}</textarea>
     ${SERVER ? `<button class="small" onclick="saveSeqAnthem(${i})">Save the words</button>` : ""}</details>${libAddBox(id, v)}`;
@@ -220,16 +220,16 @@ function serviceCard() {
     const list = s.kind === "hymn" || s.kind === "service" ? "" : "rep-" + sid(family(s));
     const ph = {hymn: "hymn number(s), e.g. 390 or LEVAS 114", anthem: "hymn number, or Title - Composer (dates)", music: "Title - Composer (dates)", service: "e.g. S278"}[s.kind];
     return `<div class="svrow"><label>${esc(s.label.replace("{hymn|anthem}", "hymn or anthem"))}</label>
-      <div><input type="text" value="${esc(B.svc[s.key] || "")}" ${list ? `list="${list}"` : ""} placeholder="${ph}" onchange="setSvc('${s.key}', this.value)" style="width:100%">
+      <div><input type="text" class="fill" data-todo="${esc(s.label.replace(/\s*\{hymn\|anthem\}/, ""))}" value="${esc(B.svc[s.key] || "")}" ${list ? `list="${list}"` : ""} placeholder="${ph}" onchange="setSvc('${s.key}', this.value)" style="width:100%">
       <div id="sh-${sid(s.key)}" class="svhint">${slotHint(s)}</div>
-      <div id="ab-${sid(s.key)}">${s.kind === "anthem" ? anthemBox(s.key) : family(s) === "organ" ? libAddBox(sid(s.key), B.svc[s.key], true) : ""}${s.words ? wordsHint(s) : ""}</div></div></div>`;
+      <div id="ab-${sid(s.key)}" class="svextra">${s.kind === "anthem" ? anthemBox(s.key) : family(s) === "organ" ? libAddBox(sid(s.key), B.svc[s.key], true) : ""}${s.words ? wordsHint(s) : ""}</div></div></div>`;
   };
-  return `${beforeCard()}<div class="card"><h3 style="font-weight:normal;margin:0 0 4px">The rest of the service <span class="hint">· ${esc(order)}</span>${info((serviceOn(B.date) ? "Already planned for this date (the imported record or this Sunday's file). " : "") + "Service music carries on from the last service of this kind unless you change it. The order of service comes from the Service box (or the day), and is set out in services.txt.")}</h3>
+  return `<div class="card"><h3 class="ctitle">The rest of the service <span class="hint">· ${esc(order)}</span>${info((serviceOn(B.date) ? "Already planned for this date (the imported record or this Sunday's file). " : "") + "Service music carries on from the last service of this kind unless you change it. The order of service comes from the Service box (or the day), and is set out in services.txt.")}</h3>
     
-    <div class="svrow"><label>Organist</label><div><input type="text" value="${esc(B.svc.organist || "")}" onchange="setSvc('organist', this.value)" style="width:120px"></div></div>
+    <div class="svrow organist"><label>Organist</label><div><input type="text" class="fill" data-todo="Organist" placeholder="initials" value="${esc(B.svc.organist || "")}" onchange="setSvc('organist', this.value)" style="width:120px"></div></div>
     ${shown.map(row).join("")}
     ${others.map(k => row({key: k, label: k + " (not in this order)", kind: (anySlot(k) || {}).kind || "music"})).join("")}
-    ${hidden.length ? `<div class="svrow"><label></label><div class="hint">add: ${hidden.map(s => `<span class="link" onclick="B.showOpt.add('${s.key}'); renderBuilder()">${esc(s.label.replace(/\s*\{hymn\|anthem\}/, ""))}</span>`).join(" · ")}</div></div>` : ""}
+    ${hidden.length ? `<div class="svrow more"><label></label><div class="hint">add: ${hidden.map(s => `<span class="link" onclick="B.showOpt.add('${s.key}'); renderBuilder()">${esc(s.label.replace(/\s*\{hymn\|anthem\}/, ""))}</span>`).join(" · ")}</div></div>` : ""}
     ${PLUGINS.rows.map(f => f()).join("")}
   </div>`;
 }
@@ -252,4 +252,4 @@ function refreshSlot(k) {
   if (s) { const h = $("#sh-" + sid(k)); if (h) h.innerHTML = slotHint(s); const ab = $("#ab-" + sid(k)); if (ab && s.kind === "anthem") ab.innerHTML = anthemBox(k); else if (ab && family(s) === "organ") ab.innerHTML = libAddBox(sid(k), B.svc[k], true); }
   refreshFile();
 }
-function refreshFile() { const pre = $("#bfile"); if (pre) pre.textContent = sundayText(); PLUGINS.changed.forEach(f => f()); }
+function refreshFile() { const pre = $("#bfile"); if (pre) pre.textContent = sundayText(); PLUGINS.changed.forEach(f => f()); updateTodo(); }

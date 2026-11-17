@@ -183,7 +183,7 @@ dialog::backdrop { background: rgba(0,0,0,.35); }
 .me-grid .notation img { max-width: 100%; }
 @media (max-width: 760px) { .me-grid { grid-template-columns: 1fr; } }
 .changed { color: var(--accent); font-size: 13px; margin-left: 3px; cursor: help; }
-.moodrow.chantfacts { margin: -2px 0 6px 3.2em; }
+.moodrow.chantfacts { margin: -2px 0 6px 4.4em; }
 button:disabled { opacity: .55; cursor: wait; }
 
 /* things that open: a ▸ that turns, a highlight under the pointer, and spaced-out actions */
@@ -225,3 +225,45 @@ button:disabled { opacity: .55; cursor: wait; }
 /* a small turning circle: something is being done */
 .spinner { display: inline-block; width: .8em; height: .8em; border: 2px solid currentColor; border-right-color: transparent;
   border-radius: 50%; vertical-align: -1px; animation: spin .9s linear infinite; }
+
+/* the Service planner: a few sizes of type for what matters most, room between groups, and every empty field easy to see */
+:root { --todo: #b7791f; --todo-bg: color-mix(in srgb, #e0a84a 13%, var(--panel)); }
+@media (prefers-color-scheme: dark) { :root { --todo: #e0a84a; --todo-bg: color-mix(in srgb, #e0a84a 12%, var(--panel)); } }
+.planner .pgroup { margin-bottom: 30px; }
+.planner .pgroup.tight > .card { margin-bottom: 8px; }
+.planner .card > h3.ctitle, .planner .card > h3:first-child { font-size: 21px; font-weight: normal; margin: 0 0 12px; }
+.planner .card > h3 .hint { font-size: 15px; }
+.planner .addmore { margin: 2px 0 0; }
+.planner .plabel { display: inline-block; min-width: 3.6em; font-size: 17px; }
+.planner .small-act { margin: 2px 0 4px; font-size: 15px; }
+.planner .psmeta { margin: 4px 0 6px; font-size: 14px; }
+.planner .psmeta .hint { font-size: 14px; }
+.planner .sugline { font-size: 14px; margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--line); }
+/* the rows of the service: the label and its piece first, then what is known about it, small */
+.planner .svrow { margin: 0 0 12px; }
+.planner .svrow > label { font-size: 16px; color: var(--ink); }
+.planner .svrow.organist { padding-bottom: 12px; margin-bottom: 14px; border-bottom: 1px solid var(--line); }
+.planner .svrow.more { margin-top: 4px; }
+.planner .svhint { font-size: 13.5px; line-height: 1.4; margin-top: 2px; }
+.planner .svhint .hint { font-size: 13.5px; }
+.planner .svextra { display: flex; flex-wrap: wrap; gap: 0 16px; font-size: 13.5px; }
+.planner .svextra:empty { display: none; }
+.planner .svextra > details { margin: 1px 0 0; }
+.planner .svextra > details[open], .planner .svextra > div { flex-basis: 100%; }
+.planner .svextra summary.hint, .planner .svextra .hint { font-size: 13.5px; }
+.planner input[type=text] { font-size: 16px; }
+/* a filled field reads as text (its box comes back under the pointer); an empty one is a tinted, dashed box with its label marked */
+.planner input.fill:not(:placeholder-shown):not(:hover):not(:focus) { border-color: transparent; background: transparent; }
+.planner input.fill:placeholder-shown { background: var(--todo-bg); border: 1px dashed var(--todo); }
+.planner input.fill:placeholder-shown::placeholder { color: var(--muted); font-style: italic; }
+.planner .svrow:has(input.fill:placeholder-shown) > label, .planner .moodrow:has(> input.fill:placeholder-shown) > .plabel { color: var(--todo); }
+.planner .svrow:has(input.fill:placeholder-shown) > label::before, .planner .moodrow:has(> input.fill:placeholder-shown) > .plabel::before {
+  content: ""; display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--todo); margin: 0 6px 0 -13px; vertical-align: 2px; }
+.planner .todo { margin: 0 0 14px; padding: 8px 14px; border-radius: 8px; background: var(--todo-bg); border: 1px solid color-mix(in srgb, var(--todo) 40%, transparent); font-size: 15px; }
+.planner .todo b { font-weight: normal; color: var(--todo); }
+.planner .todo.done { background: transparent; border-color: var(--line); color: var(--muted); }
+.planner .todo:empty { display: none; }
+.planner .filebox { margin-top: 12px; }
+.planner .filebox summary { font-size: 15px; }
+.planner .filebox pre { font: 14px/1.5 ui-monospace, Menlo, Consolas, monospace; white-space: pre-wrap; margin: 8px 0 0; }
+.planner .svhint, .planner .svextra { padding-left: 10px; }      /* in line with the text in the box above */

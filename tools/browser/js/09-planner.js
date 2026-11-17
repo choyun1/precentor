@@ -166,21 +166,27 @@ function renderBuilder() {
       <h3>Options</h3><label class="hint"><input type="checkbox" id="breprint" ${B.reprint ? "checked" : ""}> reprint chant at top of page</label><br>
       <label class="hint"><input type="checkbox" id="bsung" ${B.sung ? "checked" : ""}> sung (confirmed): counts in the history</label><br>
       <label class="hint"><input type="checkbox" id="bnochoir" ${B.choir === false ? "checked" : ""}> no choir this week (the psalm is said)</label>
-    </aside><div>
+    </aside><div class="planner">
+    <p id="todo" class="todo"></p>
+    <div class="pgroup">
     ${B.existing !== null ? `<div class="card"><b style="font-weight:normal">${esc(B.name)}.txt already exists.</b> <span class="link" onclick="loadExisting()">Load it</span> or carry on to replace it.</div>` : ""}
     ${c && c.options.length ? `<p class="count" style="margin:2px 0 12px">Appointed: ${c.options.map(o =>
       `<span class="link" onclick="usePsalm('${esc(o.spec)}')">${o.track ? esc(o.track) + ": " : ""}${/^\d/.test(o.spec) ? "Psalm " : ""}${esc(o.spec)}</span>${o.texts.length ? "" : ` <span class="hint">(${/^\d/.test(o.spec) ? esc(o.error || "no text yet") : "not in the library yet"})</span>`}`).join(" · ")}${info("Click one to use it." + (D.parish.name ? " " + D.parish.name + " uses" : " Default:") + " Track " + D.parish.track + " after Pentecost (parish.txt).")}</p>` : ""}
     ${B.psalms.map((p, pi) => psalmBlock(p, pi, recent)).join("")}
-    <p><span class="link" onclick="addPsalm()">+ another psalm</span></p>
+    <p class="addmore"><span class="link" onclick="addPsalm()">+ another psalm</span></p>
+    </div>
+    <div class="pgroup tight">
     <div class="card"><details ${B.previewOpen ? "open" : ""} ontoggle="B.previewOpen=this.open"><summary>Preview</summary>
       ${SERVER ? `<p style="margin:8px 0"><button class="small" ${B.busy ? "disabled" : ""} onclick="pdfPreview()">${B.busy && /PDF preview/.test(B.status) ? "Making the PDF…" : "Exact PDF preview"}</button> <span class="hint">LilyPond takes a few seconds</span></p>` : ""}
       ${B.pdf ? `<p style="margin:4px 0"><a href="/${encodeURI(B.pdf)}" target="_blank">Open the PDF in its own tab</a> · <span class="link" onclick="B.pdf=''; renderBuilder()">back to the quick preview</span></p>
         <iframe src="/${encodeURI(B.pdf)}?t=${Date.now()}" style="width:100%;height:80vh;border:1px solid var(--line);border-radius:6px;background:#fff"></iframe>` : quickPreview()}
     </details></div>
-    ${B.mode === "psalm" ? "" : serviceCard()}
-    <div class="card"><h3 style="font-weight:normal;margin:0 0 6px">The file: ${esc(B.name)}.txt</h3>
-      <pre id="bfile" style="font: 14px/1.5 ui-monospace, Menlo, Consolas, monospace; white-space: pre-wrap; margin:0">${esc(text)}</pre>
-      <p style="margin:10px 0 0">
+    ${B.mode === "psalm" ? "" : beforeCard()}
+    </div>
+    ${B.mode === "psalm" ? "" : `<div class="pgroup">${serviceCard()}</div>`}
+    <div class="pgroup">
+    <div class="card"><h3 class="ctitle">Save and build</h3>
+      <p style="margin:0">
         <button class="small primary" onclick="saveSunday()">${SERVER ? "Save" : "Save file…"}</button>
         ${SERVER ? `<button class="small" ${B.busy ? "disabled" : ""} onclick="checkSunday()">Save &amp; check</button>
         <button class="small primary" ${B.busy ? "disabled" : ""} onclick="buildSunday(false)">Save &amp; build PDF + images</button>
@@ -190,9 +196,11 @@ function renderBuilder() {
       ${B.status ? `<p><b style="font-weight:normal">${esc(B.status)}</b></p>` : ""}
       ${B.log ? `<pre style="font: 13px/1.45 ui-monospace, Menlo, Consolas, monospace; white-space: pre-wrap; background: var(--bg); padding: 8px; border-radius: 6px">${esc(B.log)}</pre>` : ""}
       ${B.files.length ? `<p>${B.files.map(f => `<a href="/${encodeURI(f)}" target="_blank">${esc(f.split("/").pop())}</a>`).join(" · ")}</p>` : ""}
+      <details class="filebox" ${B.fileOpen ? "open" : ""} ontoggle="B.fileOpen=this.open"><summary>The file: ${esc(B.name)}.txt</summary>
+        <pre id="bfile">${esc(text)}</pre></details>
     </div>
     ${B.mode === "psalm" ? "" : PLUGINS.cards.map(f => f()).join("")}
-    </div></div>
+    </div></div></div>
     <datalist id="chantlist">${chantOptions()}</datalist>
     ${repLists()}`;
   $("#bdate").onchange = e => setDate(e.target.value);
@@ -207,7 +215,19 @@ function renderBuilder() {
   $("#breprint").onchange = e => { B.reprint = e.target.checked; renderBuilder(); };
   $("#bsung").onchange = e => { B.sung = e.target.checked; renderBuilder(); };
   $("#bnochoir").onchange = e => { B.choir = !e.target.checked; renderBuilder(); };
+  $("#tab-builder").oninput = e => { if (e.target.matches("input.fill")) updateTodo(); };
+  updateTodo();
 }
+// the fields still empty, at the top of the planner: each one a link that goes to it
+const todoFields = () => [...document.querySelectorAll("#tab-builder input.fill")].filter(x => !x.value.trim());
+function updateTodo() {
+  const el = $("#todo"); if (!el) return;
+  const empty = todoFields();
+  el.classList.toggle("done", !empty.length);
+  el.innerHTML = empty.length ? `<b>${empty.length} still empty:</b> ${empty.map((x, i) => `<span class="link" onclick="todoGo(${i})">${esc(x.dataset.todo)}</span>`).join(" · ")}`
+    : "✓ Everything is filled in.";
+}
+function todoGo(i) { const x = todoFields()[i]; if (x) { x.scrollIntoView({block: "center", behavior: "smooth"}); x.focus({preventScroll: true}); } }
 
 // pointed text as HTML
 function pointedLine(t) {
@@ -437,7 +457,7 @@ function psalmBlock(p, pi, recent) {
   const sg = mood.length ? D.chants.map(ch => ({ch, ...score(mood, val(ch, "mood"))})).filter(x => x.s > 0 && !recent.has(x.ch.id))
     .sort((a, b) => b.s - a.s || (val(b.ch, "rating") || 0) - (val(a.ch, "rating") || 0) || lastUsed(a.ch.id).localeCompare(lastUsed(b.ch.id))).slice(0, 8) : [];
   return `<div class="card">
-    <div class="moodrow">Psalm <input type="text" value="${esc(p.spec)}" placeholder="e.g. 70, 72:1-7,18-19, 119 Aleph" style="width:260px"
+    <div class="moodrow"><span class="plabel">Psalm</span> <input type="text" class="fill" data-todo="${B.psalms.length > 1 ? "Psalm " + (pi + 1) : "Psalm"}" value="${esc(p.spec)}" placeholder="e.g. 70, 72:1-7,18-19, 119 Aleph" style="width:260px"
       onchange="Object.assign(B.psalms[${pi}], {spec: this.value, daggers: null, optional: null, pointing: null}); renderBuilder()">
       ${res.length ? res.map(r => `<span class="link" onclick="goText('${esc(r.id)}')">${esc(TX[r.id].title)}</span>`).join(", ") : (p.spec ? '<span class="hint">no matching text</span>' : "")}
       ${mood.map(m => chip(m)).join(" ")}
@@ -449,7 +469,7 @@ function psalmBlock(p, pi, recent) {
       ${textBody(res, p).map(seg => `<div class="hint" style="margin-top:6px">${esc(seg.title)}</div>` + pointedHTML(withDaggers(seg.body, p.daggers), null, pi, seg.id)).join("")}</details>` : ""}
     ${B.choir === false ? '<p class="hint" style="margin:6px 0">No choir this week: the psalm is said, so no chant (untick <i>no choir</i> under Options to choose one).</p>' : p.chants.map((c, ci) => {
       const ch = C[c.name];
-      return `<div class="moodrow">${ci === 0 ? "Chant" : "then"} <input type="text" list="chantlist" value="${esc(c.name)}" placeholder="chant, or e.g. tone 7a" style="width:170px"
+      return `<div class="moodrow"><span class="plabel">${ci === 0 ? "Chant" : "then"}</span> <input type="text" class="fill" data-todo="${esc((ci ? "Chant from v. " + (c.from || "?") : "Chant") + (p.spec ? " (Psalm " + p.spec + ")" : ""))}" list="chantlist" value="${esc(c.name)}" placeholder="chant, or e.g. tone 7a" style="width:170px"
         onchange="{ const r = /^tone[:\\s]/i.test(this.value.trim()) ? {name: this.value.trim(), shift: 0} : chantRef(this.value); B.psalms[${pi}].chants[${ci}].name=r.name; B.psalms[${pi}].chants[${ci}].shift=r.shift; renderBuilder(); }">
         <button class="small" onclick="openPicker(${pi}, ${ci})">Choose…</button>
         ${ch ? `<select title="Transpose: the PDF prints the chant in this key" onchange="B.psalms[${pi}].chants[${ci}].shift=+this.value; renderBuilder()">${
@@ -461,9 +481,9 @@ function psalmBlock(p, pi, recent) {
         ${ch ? `<div class="moodrow chantfacts"><span class="hint"><span class="link" onclick="showChant('${esc(ch.id)}')">${esc(CN(ch.id))}</span>, ${sdName(ch)} · last used ${esc(lastUsed(ch.id) || "never")}</span>
           ${val(ch, "mood").map(t => chip(t, mood.includes(t) ? "on" : "")).join("") || '<span class="hint">no moods yet</span>'}</div>` : ""}`;
     }).join("")}
-    ${B.choir === false ? "" : `<p style="margin:4px 0"><span class="link" onclick="B.psalms[${pi}].chants.push({name:'',from:''}); renderBuilder()">+ change chant partway</span></p>`}
-    ${res.length && B.choir !== false ? `<div style="margin:2px 0 6px">${fitReport(p, pi)}${(() => { const d = p.daggers || textDaggers(res); return `<div class="hint">† ${d.length ? "on v. " + d.join(", ") : "on no verse"}${p.daggers ? " (moved for this Sunday)" : " (as marked in the text)"} · <span class="link" onclick="B.psalms[${pi}].open=true; renderBuilder()">change</span></div>`; })()}</div>` : ""}
-    ${sg.length && B.choir !== false ? `<div class="used">Suggestions (moods match, not used in the last 12 weeks): ${sg.map(x =>
+    ${B.choir === false ? "" : `<p class="small-act"><span class="link" onclick="B.psalms[${pi}].chants.push({name:'',from:''}); renderBuilder()">+ change chant partway</span></p>`}
+    ${res.length && B.choir !== false ? `<div class="psmeta">${fitReport(p, pi)}${(() => { const d = p.daggers || textDaggers(res); return `<div class="hint">† ${d.length ? "on v. " + d.join(", ") : "on no verse"}${p.daggers ? " (moved for this Sunday)" : " (as marked in the text)"} · <span class="link" onclick="B.psalms[${pi}].open=true; renderBuilder()">change</span></div>`; })()}</div>` : ""}
+    ${sg.length && B.choir !== false ? `<div class="used sugline">Suggestions (moods match, not used in the last 12 weeks): ${sg.map(x =>
       `<span class="link" onclick="useChant(${pi}, '${esc(x.ch.id)}')">${esc(CN(x.ch.id))}</span>`).join(" · ")}</div>`
       : ""}
   </div>`;
