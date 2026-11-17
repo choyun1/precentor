@@ -170,7 +170,7 @@ function libAddBox(id, v, organ) {
   if (!SERVER || !v || hymnsOf(v).length || !libReal({Title: splitPiece(v)[0]})) return "";
   LIBV[id] = v;
   const r = libFind(v);
-  return `<details style="margin:4px 0 8px"><summary class="hint">${r ? "Edit it in the library" : "Not in the library: add it"}</summary>${libForm(id, r, v, organ)}</details>`;
+  return `<details><summary class="hint">${r ? "Edit it in the library" : "Not in the library: add it"}</summary>${libForm(id, r, v, organ)}</details>`;
 }
 async function libSave(id, i) {
   const old = i >= 0 ? LIB.rows[i] : null, row = old ? libRowOf(old) : {};
