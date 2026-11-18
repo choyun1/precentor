@@ -123,6 +123,19 @@ try {
     await page.click("nav button[data-tab=texts]"); await wait(300);
     await page.evaluate(() => goText("Psalm_023")); await wait(300);
   });
+  await step("Tabs: each tab keeps its own scroll position", async () => {
+    await page.click("nav button[data-tab=chants]"); await wait(300);
+    const y = await page.evaluate(() => { window.scrollTo(0, 400); return window.scrollY; });
+    if (y < 100) throw new Error("the Chants tab is too short to scroll");
+    await page.click("nav button[data-tab=upcoming]"); await wait(300);
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await page.click("nav button[data-tab=chants]"); await wait(300);
+    const back = await page.evaluate(() => window.scrollY);
+    if (Math.abs(back - y) > 2) throw new Error(`Chants came back at ${back}, not ${y}`);
+    await page.click("nav button[data-tab=upcoming]"); await wait(300);
+    const up = await page.evaluate(() => window.scrollY);
+    if (up !== 0) throw new Error(`Coming up came back at ${up}, not 0`);
+  });
   await step("History: the record", async () => { await page.click("nav button[data-tab=history]"); await wait(300); });
   await step("Planner: a Sunday, a chant, transposed, the text, the preview", async () => {
     await page.click("nav button[data-tab=builder]"); await wait(500);
