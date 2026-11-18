@@ -31,11 +31,26 @@ function editBox(c) {
   const mood = val(c, "mood"), r = val(c, "rating");
   return `<div class="edit">
     ${D.vocabulary.map(g => `<div class="moodpick">${g.tags.map(t => `<button class="chip g-${esc(g.group)} ${mood.includes(t) ? "on" : ""}" onclick="toggleMood('${esc(c.id)}','${esc(t)}')">${esc(t)}</button>`).join("")}</div>`).join("")}
-    Rating: <select onchange="setEdit('${esc(c.id)}','rating', this.value === '' ? null : +this.value); refreshCard('${esc(c.id)}')">
-      <option value="">–</option>${[1, 2, 3, 4, 5].map(n => `<option ${r === n ? "selected" : ""}>${n}</option>`).join("")}</select>
+    <div class="rate">Rating: ${starPicker(c.id, r)}</div>
     <textarea placeholder="Notes on its character" onchange="setEdit('${esc(c.id)}','notes', this.value)">${esc(val(c, "notes"))}</textarea>
     <p style="margin:8px 0 0"><button class="small" onclick="closeEdit('${esc(c.id)}')">Done</button></p>
   </div>`;
+}
+// click a star to rate 1–5; click the lit one again (or "clear") to take the rating off
+function starPicker(id, r) {
+  const q = esc(id);
+  return `<span class="starpick" role="group" aria-label="Rating">${[1, 2, 3, 4, 5].map(n =>
+    `<button type="button" class="star ${r >= n ? "on" : ""}" data-n="${n}" aria-pressed="${r === n}"
+      aria-label="${n} star${n > 1 ? "s" : ""}" title="${r === n ? "Clear the rating" : n + " star" + (n > 1 ? "s" : "")}"
+      onclick="rate('${q}', ${n})">★</button>`).join("")}</span>${r ? ` <span class="link" role="button" tabindex="0"
+      onclick="rate('${q}', null)" onkeydown="if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); rate('${q}', null); }">clear</span>` : ""}`;
+}
+function rate(id, n) {
+  if (n != null && val(C[id], "rating") === n) n = null;
+  setEdit(id, "rating", n);
+  refreshCard(id);
+  const b = document.querySelector(`#card-${CSS.escape(id)} .starpick .star[data-n="${n || 1}"]`);
+  if (b) b.focus();                   // the card was redrawn: keep the keyboard where it was
 }
 const openEdits = new Set();
 const OPEN = new Set();               // chants opened in the Chants list

@@ -76,6 +76,13 @@ try {
     await page.click("#clist .card .act:has-text('Edit mood')"); await wait(400);
     if (!await page.locator("#clist .card .edit").count()) throw new Error("the panel didn't open");
     if (await page.getAttribute("#clist .card .act:has-text('Edit mood')", "aria-expanded") !== "true") throw new Error("not marked open");
+    const was = await page.locator("#clist .card .starpick .star.on").count();
+    await page.click("#clist .card .starpick .star[data-n='4']"); await wait(200);
+    if (await page.locator("#clist .card .starpick .star.on").count() !== 4) throw new Error("four stars didn't light");
+    if (await page.locator("#clist .card .facts .stars").textContent() !== "★★★★☆") throw new Error("the card doesn't show the rating");
+    await page.click("#clist .card .starpick .star[data-n='4']"); await wait(200);
+    if (await page.locator("#clist .card .starpick .star.on").count()) throw new Error("clicking the lit star didn't clear it");
+    if (was) { await page.click(`#clist .card .starpick .star[data-n='${was}']`); await wait(200); }     // as it was
     await page.click("#clist .card .act:has-text('Edit mood')"); await wait(500);
     if (await page.locator("#clist .card .edit").count()) throw new Error("the panel didn't shut");
     await page.click("#clist .crow.open"); await wait(500);

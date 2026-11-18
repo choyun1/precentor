@@ -1,7 +1,7 @@
 # Mood vocabulary, shared by chants (Mood column of chants/catalog.csv) and texts (texts/moods.csv).
 # One group per line, "group: tag, tag, ...". Tags in the same group count as a partial match.
 # You can add tags to a group or add a new group; the browser picks them up on the next run.
-bright: jubilant, triumphant, majestic, joyful, bright
+bright: jubilant, triumphant, majestic, noble, joyful, bright
 calm: serene, mystical, confident, sweet, tender, delicate
 shadowed: mysterious, wistful, yearning, plaintive, penitent
 dark: gloomy, mournful, anguished, stern, wrathful, dramatic
