@@ -594,8 +594,27 @@ def header(outdir, paper_extra=''):
             '  print-page-number = ##f', paper_extra, '}', '\\header { tagline = ##f }', '']
 
 
+ONE_LINE = '\\context { \\Score \\override NonMusicalPaperColumn.line-break-permission = ##f }'
+
+
+def one_line(score):
+    """A chant's score kept on one system: no line break at any bar line, so a single or double chant is
+    squeezed to fit the page width rather than spilling onto a second line (a \\break in the file still wins)."""
+    m = re.search(r'\\score\s*\{', score)
+    if not m:
+        return score
+    end = _brace_block(score, m.end() - 1)
+    lm = re.compile(r'\\layout\s*\{').search(score, m.end(), end)
+    if lm:
+        return score[:lm.end()] + '\n' + ONE_LINE + score[lm.end():]
+    close = end - 1                       # the score's own closing brace
+    return score[:close] + '\\layout { ' + ONE_LINE + ' }\n' + score[close:]
+
+
 def chant_markup(c, score):
     """Composer credit (right-aligned) and the chant, as one block so they never part at a page break."""
+    if not c.get('quad'):              # a quadruple chant may take two lines (its file says where with \break)
+        score = one_line(score)
     inner = re.sub(r'^\\markup\s*\{', '', score.strip())
     inner = inner[:inner.rstrip().rfind('}')]
     credit = ''
@@ -635,14 +654,20 @@ def gloria_verses():
     return [dict(v, n='', dagger=False) for v in doc['verses']]
 
 
+KEEP = '\\noPageBreak'
+
+
 def choir_ly(sunday, psalms, chants, tags, outdir, reprints=frozenset()):
-    """reprints: set of (psalm index, verse number) before which the current chant is printed again."""
+    """reprints: set of (psalm index, verse number) before which the current chant is printed again.
+    No page break comes between a chant, the title and the first two verses under it, nor before a psalm's last
+    verse (or the Gloria Patri after it), so no verse is left alone at the foot or the top of a page."""
     L = header(outdir)
     for name, tag in tags.items():
         L += ['% ---- chant ' + name, prefixed(chants[name], tag)[0], '']
     prev = (None, None)
     last = None
     for pi, ps in enumerate(psalms):
+        final = ps['sections'][-1]['verses'][-1]
         for si, sec in enumerate(ps['sections']):
             c = chants[sec['chant']]
             head = music_markup(c, tags.get(sec['chant']))
@@ -650,22 +675,33 @@ def choir_ly(sunday, psalms, chants, tags, outdir, reprints=frozenset()):
             # the same chant carrying on into the next section of one psalm line (119:1-16) is not printed again
             cont = si == 0 and prev == (ps['spec'], sec['chant'])
             if not cont:
-                L.append(head)
+                L += [head, KEEP]
             prev = (ps['spec'], sec['chant'])
             last = c
             if si == 0:
-                L.append(emit.title_markup(ps['doc']))
+                L += [emit.title_markup(ps['doc']), KEEP]
             for vi, v in enumerate(sec['verses']):
                 if vi > 0 and (pi, v['n']) in reprints:
-                    L += ['% chant reprinted at the top of the page', '\\pageBreak', head]
+                    if L[-1] == KEEP:
+                        L.pop()
+                    L += ['% chant reprinted at the top of the page', '\\pageBreak', head, KEEP]
                 if c.get('tone'):
                     pv = tones.point_verse(v, c['tone'], first=(vi == 0 and not cont) or ps['every'])
                     L.append(tones.verse_markup(pv))          # every verse pointed in words; the tone is printed above
                 else:
                     L.append(emit.verse_markup(v))
+                nxt = sec['verses'][vi + 1] if vi + 1 < len(sec['verses']) else None
+                if nxt is None and si + 1 < len(ps['sections']):
+                    nxt = ps['sections'][si + 1]['verses'][0]
+                if nxt is not None and (vi == 0 or nxt is final):   # the first verse goes with the next, the last with the one before
+                    L.append(KEEP)
     if sunday['gloria']:
+        if psalms and L[-1] != KEEP:
+            L.append(KEEP)                             # kept with the psalm's last verse
         L.append('% ==== Gloria Patri')
-        for v in gloria_verses():
+        for gi, v in enumerate(gloria_verses()):
+            if gi:
+                L.append(KEEP)
             L.append(tones.verse_markup(tones.point_verse(v, last['tone'])) if last and last.get('tone') else emit.verse_markup(v))
     return '\n'.join(L) + '\n'
 

@@ -116,6 +116,39 @@ class Psalms(unittest.TestCase):
         self.assertIn('Soprano: bar 1 is too long for 2/4', chantedit.check(chantedit.apply(text, p))[0])
         self.assertEqual(chantedit.spacers('a2 | <d fis>4 e~ | d?2 \\bar "||" r4 bes, |'), 's2 | s4 s | s2 \\bar "||" s4 s |')
 
+    def test_chant_on_one_line(self):
+        """A single or double chant is printed on one system (no line break at its bar lines); a quadruple may break."""
+        c = build.load_music('Macpherson-2')
+        m = build.chant_markup(c, build.prefixed(c, 'cha')[1])
+        self.assertIn(build.ONE_LINE, m)
+        self.assertEqual(m.count('\\layout'), 1)
+        self.assertIn('\\layout { ' + build.ONE_LINE, build.one_line('\\score { { c1 } }'))
+        self.assertNotIn(build.ONE_LINE, build.chant_markup(dict(c, quad=True), build.prefixed(c, 'cha')[1]))
+
+    def test_no_verse_left_alone_on_a_page(self):
+        """Chant, title and the first two verses stay together, as do a psalm's last two verses and the Gloria."""
+        f = tempfile.NamedTemporaryFile('w', suffix='.txt', delete=False)
+        f.write('psalm: 80:1-7,16-18\nchant: Macpherson-2\nservice: evensong\n')
+        f.close()
+        try:
+            s = build.parse_sunday(f.name)
+        finally:
+            os.unlink(f.name)
+        s['gloria'] = True
+        ps = build.plan(s)
+        chants = {'Macpherson-2': build.load_music('Macpherson-2')}
+        ly = build.choir_ly(s, ps, chants, {'Macpherson-2': 'cha'}, tempfile.gettempdir())
+        body = ly[ly.index('\n\\markup', ly.index('% ====')) + 1:]
+        kept = ['\\noPageBreak' in b for b in re.split(r'\n(?=\\markup)', body)]
+        # blocks: chant, title, v1, v2, ..., v17, v18, Gloria 1, Gloria 2
+        self.assertEqual(kept[:3], [True, True, True])       # chant, title, verse 1 held to what follows
+        self.assertFalse(kept[3])                            # a break may come after verse 2
+        self.assertEqual(kept[-5:], [False, True, True, True, False])   # v16 | v17 + v18 + Gloria
+        self.assertEqual(len(kept), 2 + 10 + 2)
+        ly = build.choir_ly(s, ps, chants, {'Macpherson-2': 'cha'}, tempfile.gettempdir(), frozenset({(0, 16)}))
+        self.assertIn('\\pageBreak', ly)
+        self.assertNotIn('\\noPageBreak\n% chant reprinted', ly)
+
     def test_changes_out_of_order_are_refused(self):
         with self.assertRaises(SystemExit):
             self.plan('psalm: 23\nchant: Turle-2\nchant: Goss-1 from 4\nchant: Smart-1 from 2\n')
